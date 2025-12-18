@@ -16,7 +16,7 @@ const (
 	JobStatusProcessing JobStatus = "processing"
 	JobStatusCompleted  JobStatus = "completed"
 	JobStatusFailed     JobStatus = "failed"
-	JobStatusCancelled  JobStatus = "cancelled"
+	JobStatusCancelled  JobStatus = "canceled"
 )
 
 // OperationType represents the type of image processing operation

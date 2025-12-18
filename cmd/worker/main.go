@@ -207,9 +207,9 @@ func (w *Worker) processJob(ctx context.Context, msg *queue.Message) error {
 		return nil
 	}
 
-	// Check if job is cancelled
+	// Check if job is canceled
 	if job.Status == models.JobStatusCancelled {
-		logger.Info("job cancelled, skipping")
+		logger.Info("job canceled, skipping")
 		return nil
 	}
 

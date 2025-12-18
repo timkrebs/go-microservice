@@ -25,8 +25,8 @@ func New() *Processor {
 type ProcessResult struct {
 	Data        []byte
 	ContentType string
-	Width       int
 	Height      int
+	Width       int
 }
 
 // Process applies the given operations to an image
