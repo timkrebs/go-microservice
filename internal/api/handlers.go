@@ -237,7 +237,7 @@ func (h *Handlers) CancelJob(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	h.writeJSON(w, http.StatusOK, map[string]string{"status": "cancelled"})
+	h.writeJSON(w, http.StatusOK, map[string]string{"status": "canceled"})
 }
 
 // GetImage handles GET /api/v1/images/{id}

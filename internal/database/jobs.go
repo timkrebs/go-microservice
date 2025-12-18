@@ -285,7 +285,7 @@ func (r *JobRepository) FailJob(ctx context.Context, id uuid.UUID, errorMsg stri
 	return err
 }
 
-// CancelJob marks a job as cancelled
+// CancelJob marks a job as canceled
 func (r *JobRepository) CancelJob(ctx context.Context, id uuid.UUID) error {
 	query := `
 		UPDATE jobs
@@ -307,7 +307,7 @@ func (r *JobRepository) CancelJob(ctx context.Context, id uuid.UUID) error {
 		return fmt.Errorf("failed to get rows affected: %w", err)
 	}
 	if rows == 0 {
-		return fmt.Errorf("job cannot be cancelled (already processing or completed)")
+		return fmt.Errorf("job cannot be canceled (already processing or completed)")
 	}
 
 	return nil
