@@ -1,0 +1,62 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: worker
+  namespace: image-processor
+  labels:
+    app: worker
+    app.kubernetes.io/name: image-processor
+    app.kubernetes.io/component: worker
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: worker
+  template:
+    metadata:
+      labels:
+        app: worker
+        app.kubernetes.io/name: image-processor
+        app.kubernetes.io/component: worker
+    spec:
+      containers:
+        - name: worker
+          image: image-processor-worker:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: health
+              containerPort: 8082
+              protocol: TCP
+          env:
+            - name: HTTP_PORT
+              value: "8082"
+            - name: WORKER_CONCURRENCY
+              value: "4"
+          envFrom:
+            - configMapRef:
+                name: image-processor-config
+            - secretRef:
+                name: image-processor-secrets
+          resources:
+            requests:
+              cpu: 200m
+              memory: 256Mi
+            limits:
+              cpu: 1000m
+              memory: 1Gi
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: health
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: health
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 3

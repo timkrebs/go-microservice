@@ -1,0 +1,81 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: db-migration
+  labels:
+    app.kubernetes.io/name: db-migration
+    app.kubernetes.io/component: database
+    app.kubernetes.io/part-of: image-processor
+spec:
+  ttlSecondsAfterFinished: 600
+  backoffLimit: 3
+  template:
+    metadata:
+      labels:
+        app: db-migration
+    spec:
+      restartPolicy: OnFailure
+      initContainers:
+        - name: wait-for-postgres
+          image: postgres:16-alpine
+          command:
+            - sh
+            - -c
+            - |
+              until pg_isready -h postgres -U postgres; do
+                echo "Waiting for PostgreSQL to be ready..."
+                sleep 2
+              done
+              echo "PostgreSQL is ready"
+          env:
+            - name: PGPASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: app-secrets
+                  key: POSTGRES_PASSWORD
+      containers:
+        - name: migrate
+          image: image-processor-api:latest
+          imagePullPolicy: IfNotPresent
+          command:
+            - /bin/sh
+            - -c
+            - |
+              set -e
+              echo "Starting database migration..."
+              
+              # Check if migrate binary exists in the image
+              if ! command -v migrate > /dev/null 2>&1; then
+                echo "Error: migrate binary not found in image"
+                echo "Installing golang-migrate..."
+                apk add --no-cache curl
+                curl -L https://github.com/golang-migrate/migrate/releases/download/v4.17.0/migrate.linux-amd64.tar.gz | tar xvz
+                mv migrate /usr/local/bin/migrate
+                chmod +x /usr/local/bin/migrate
+              fi
+              
+              # Run migrations
+              echo "Running migrations from /app/migrations..."
+              migrate -path /app/migrations -database "${DATABASE_URL}" up
+              
+              # Verify migration status
+              echo "Current migration version:"
+              migrate -path /app/migrations -database "${DATABASE_URL}" version
+              
+              echo "Migration completed successfully"
+          envFrom:
+            - configMapRef:
+                name: app-config
+          env:
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: app-secrets
+                  key: POSTGRES_PASSWORD
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 256Mi

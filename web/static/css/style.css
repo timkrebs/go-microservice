@@ -1,0 +1,401 @@
+/* Black & White Minimalist Design */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+    background-color: #ffffff;
+    color: #000000;
+    line-height: 1.6;
+}
+
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 20px;
+}
+
+/* Header */
+header {
+    border-bottom: 2px solid #000000;
+    padding: 20px 0;
+}
+
+header h1 {
+    font-size: 1.5rem;
+    font-weight: 700;
+    letter-spacing: -0.5px;
+}
+
+header nav {
+    margin-top: 10px;
+}
+
+header nav a {
+    color: #000000;
+    text-decoration: none;
+    margin-right: 20px;
+    font-size: 0.9rem;
+    border-bottom: 1px solid transparent;
+}
+
+header nav a:hover,
+header nav a.active {
+    border-bottom: 1px solid #000000;
+}
+
+/* Main Content */
+main {
+    padding: 40px 0;
+    min-height: calc(100vh - 200px);
+}
+
+h2 {
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin-bottom: 20px;
+}
+
+/* Upload Section */
+.upload-section {
+    border: 2px dashed #000000;
+    padding: 40px;
+    text-align: center;
+    margin-bottom: 40px;
+    transition: background-color 0.2s;
+}
+
+.upload-section:hover,
+.upload-section.dragover {
+    background-color: #f0f0f0;
+}
+
+.upload-section input[type="file"] {
+    display: none;
+}
+
+.upload-section label {
+    cursor: pointer;
+    display: block;
+}
+
+.upload-section .upload-icon {
+    font-size: 3rem;
+    margin-bottom: 10px;
+}
+
+.upload-section p {
+    font-size: 0.9rem;
+    color: #666666;
+}
+
+/* Buttons */
+.btn {
+    display: inline-block;
+    padding: 10px 24px;
+    background-color: #000000;
+    color: #ffffff;
+    border: 2px solid #000000;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-decoration: none;
+}
+
+.btn:hover {
+    background-color: #ffffff;
+    color: #000000;
+}
+
+.btn-outline {
+    background-color: #ffffff;
+    color: #000000;
+}
+
+.btn-outline:hover {
+    background-color: #000000;
+    color: #ffffff;
+}
+
+.btn-sm {
+    padding: 6px 12px;
+    font-size: 0.8rem;
+}
+
+.btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* Form Elements */
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-group label {
+    display: block;
+    font-weight: 600;
+    margin-bottom: 8px;
+    font-size: 0.9rem;
+}
+
+.form-group select,
+.form-group input[type="number"],
+.form-group input[type="text"] {
+    width: 100%;
+    padding: 10px;
+    border: 2px solid #000000;
+    font-size: 0.9rem;
+    background-color: #ffffff;
+}
+
+.form-group select:focus,
+.form-group input:focus {
+    outline: none;
+    background-color: #f0f0f0;
+}
+
+/* Operations List */
+.operations-list {
+    margin-bottom: 20px;
+}
+
+.operation-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px;
+    border: 1px solid #000000;
+    margin-bottom: 8px;
+}
+
+.operation-item .remove-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 1.2rem;
+}
+
+/* Jobs List */
+.jobs-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 20px;
+}
+
+.job-card {
+    border: 2px solid #000000;
+    padding: 20px;
+}
+
+.job-card .job-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.job-card .job-id {
+    font-family: monospace;
+    font-size: 0.8rem;
+    color: #666666;
+}
+
+.job-card .job-status {
+    padding: 4px 8px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.job-card .job-status.pending { background-color: #f0f0f0; }
+.job-card .job-status.queued { background-color: #e0e0e0; }
+.job-card .job-status.processing { background-color: #000000; color: #ffffff; }
+.job-card .job-status.completed { background-color: #000000; color: #ffffff; }
+.job-card .job-status.failed { background-color: #666666; color: #ffffff; }
+
+.job-card .job-name {
+    font-weight: 600;
+    margin-bottom: 10px;
+    word-break: break-all;
+}
+
+.job-card .job-meta {
+    font-size: 0.8rem;
+    color: #666666;
+}
+
+.job-card .job-actions {
+    margin-top: 15px;
+    display: flex;
+    gap: 10px;
+}
+
+.job-card .job-preview {
+    margin: 15px 0;
+    text-align: center;
+}
+
+.job-card .job-preview img {
+    max-width: 100%;
+    max-height: 200px;
+    border: 1px solid #e0e0e0;
+}
+
+/* Progress Bar */
+.progress-container {
+    margin: 15px 0;
+}
+
+.progress-bar {
+    height: 24px;
+    background-color: #e0e0e0;
+    border: 2px solid #000000;
+    position: relative;
+    overflow: hidden;
+}
+
+.progress-bar .progress {
+    height: 100%;
+    background-color: #000000;
+    transition: width 0.3s ease-out;
+    position: relative;
+}
+
+.progress-bar .progress::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    right: 0;
+    background-image: linear-gradient(
+        45deg,
+        rgba(255, 255, 255, 0.2) 25%,
+        transparent 25%,
+        transparent 50%,
+        rgba(255, 255, 255, 0.2) 50%,
+        rgba(255, 255, 255, 0.2) 75%,
+        transparent 75%,
+        transparent
+    );
+    background-size: 20px 20px;
+    animation: progress-stripes 1s linear infinite;
+}
+
+@keyframes progress-stripes {
+    0% { background-position: 0 0; }
+    100% { background-position: 20px 20px; }
+}
+
+.progress-text {
+    text-align: center;
+    font-size: 0.75rem;
+    font-weight: 600;
+    margin-top: 5px;
+    color: #666666;
+    font-family: monospace;
+}
+
+/* Stats Section */
+.stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 20px;
+    margin-bottom: 40px;
+}
+
+.stat-card {
+    border: 2px solid #000000;
+    padding: 20px;
+    text-align: center;
+}
+
+.stat-card .stat-value {
+    font-size: 2rem;
+    font-weight: 700;
+}
+
+.stat-card .stat-label {
+    font-size: 0.8rem;
+    color: #666666;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+/* Footer */
+footer {
+    border-top: 2px solid #000000;
+    padding: 20px 0;
+    text-align: center;
+    font-size: 0.8rem;
+    color: #666666;
+}
+
+/* Loading Indicator */
+.htmx-indicator {
+    display: none;
+}
+
+.htmx-request .htmx-indicator {
+    display: inline-block;
+}
+
+.htmx-request.htmx-indicator {
+    display: inline-block;
+}
+
+.spinner {
+    display: inline-block;
+    width: 16px;
+    height: 16px;
+    border: 2px solid #e0e0e0;
+    border-top-color: #000000;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+/* Empty State */
+.empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    color: #666666;
+}
+
+.empty-state .icon {
+    font-size: 3rem;
+    margin-bottom: 20px;
+}
+
+/* Alerts */
+.alert {
+    padding: 15px;
+    margin-bottom: 20px;
+    border: 2px solid #000000;
+}
+
+.alert-error {
+    background-color: #f0f0f0;
+}
+
+.alert-success {
+    background-color: #ffffff;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .jobs-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .stats {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}

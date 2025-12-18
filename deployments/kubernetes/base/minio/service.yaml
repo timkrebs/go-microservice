@@ -1,0 +1,20 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: minio
+  namespace: image-processor
+  labels:
+    app: minio
+    app.kubernetes.io/name: image-processor
+    app.kubernetes.io/component: storage
+spec:
+  type: ClusterIP
+  ports:
+    - name: api
+      port: 9000
+      targetPort: api
+    - name: console
+      port: 9001
+      targetPort: console
+  selector:
+    app: minio

@@ -1,0 +1,30 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: image-processor
+
+resources:
+  - namespace.yaml
+  - configmap.yaml
+  - secret.yaml
+  - ingress.yaml
+  - postgres/statefulset.yaml
+  - postgres/service.yaml
+  - redis/deployment.yaml
+  - redis/service.yaml
+  - minio/deployment.yaml
+  - minio/service.yaml
+  - minio/pvc.yaml
+  - minio/init-job.yaml
+  - migrations/job.yaml
+  - api/deployment.yaml
+  - api/service.yaml
+  - api/hpa.yaml
+  - worker/deployment.yaml
+  - worker/service.yaml
+  - worker/scaledobject.yaml
+  - frontend/deployment.yaml
+  - frontend/service.yaml
+
+commonLabels:
+  app.kubernetes.io/part-of: image-processor

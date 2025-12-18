@@ -1,0 +1,88 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: minio-init
+  labels:
+    app.kubernetes.io/name: minio-init
+    app.kubernetes.io/component: storage
+    app.kubernetes.io/part-of: image-processor
+spec:
+  ttlSecondsAfterFinished: 600
+  backoffLimit: 5
+  template:
+    metadata:
+      labels:
+        app: minio-init
+    spec:
+      restartPolicy: OnFailure
+      initContainers:
+        - name: wait-for-minio
+          image: minio/mc:latest
+          command:
+            - sh
+            - -c
+            - |
+              until mc alias set myminio http://minio:9000 ${MINIO_ACCESS_KEY} ${MINIO_SECRET_KEY}; do
+                echo "Waiting for MinIO to be ready..."
+                sleep 3
+              done
+              echo "MinIO is ready"
+          env:
+            - name: MINIO_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: app-secrets
+                  key: MINIO_ACCESS_KEY
+            - name: MINIO_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: app-secrets
+                  key: MINIO_SECRET_KEY
+      containers:
+        - name: create-bucket
+          image: minio/mc:latest
+          command:
+            - sh
+            - -c
+            - |
+              set -e
+              echo "Configuring MinIO client..."
+              mc alias set myminio http://minio:9000 ${MINIO_ACCESS_KEY} ${MINIO_SECRET_KEY}
+              
+              echo "Creating bucket: ${MINIO_BUCKET}"
+              if mc ls myminio/${MINIO_BUCKET} > /dev/null 2>&1; then
+                echo "Bucket '${MINIO_BUCKET}' already exists"
+              else
+                mc mb myminio/${MINIO_BUCKET}
+                echo "Bucket '${MINIO_BUCKET}' created successfully"
+              fi
+              
+              echo "Setting bucket policy to download (public read)..."
+              mc anonymous set download myminio/${MINIO_BUCKET}
+              
+              echo "Bucket configuration:"
+              mc ls myminio/
+              mc stat myminio/${MINIO_BUCKET}
+              
+              echo "MinIO initialization completed successfully"
+          envFrom:
+            - configMapRef:
+                name: app-config
+          env:
+            - name: MINIO_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: app-secrets
+                  key: MINIO_ACCESS_KEY
+            - name: MINIO_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: app-secrets
+                  key: MINIO_SECRET_KEY
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 200m
+              memory: 128Mi
