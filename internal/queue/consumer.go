@@ -14,11 +14,11 @@ import (
 // Consumer reads jobs from the Redis stream
 type Consumer struct {
 	client        *redis.Client
+	logger        *slog.Logger
+	pollTimeout   time.Duration
 	streamName    string
 	consumerGroup string
 	consumerName  string
-	pollTimeout   time.Duration
-	logger        *slog.Logger
 }
 
 // ConsumerConfig holds consumer configuration

@@ -77,9 +77,9 @@ func (t *Templates) Render(w io.Writer, name string, data interface{}) error {
 
 // PageData holds common page data
 type PageData struct {
+	Content interface{}
 	Title   string
 	Active  string
-	Content interface{}
 }
 
 // HomeData holds home page data

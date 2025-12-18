@@ -39,29 +39,29 @@ const (
 
 // Operation represents a single image processing operation
 type Operation struct {
-	Operation  OperationType          `json:"operation"`
 	Parameters map[string]interface{} `json:"parameters,omitempty"`
+	Operation  OperationType          `json:"operation"`
 }
 
 // Job represents an image processing job
 type Job struct {
-	ID              uuid.UUID   `json:"id" db:"id"`
-	Status          JobStatus   `json:"status" db:"status"`
-	OriginalKey     string      `json:"original_key" db:"original_key"`
-	ProcessedKey    string      `json:"processed_key,omitempty" db:"processed_key"`
-	OriginalName    string      `json:"original_name" db:"original_name"`
-	ContentType     string      `json:"content_type" db:"content_type"`
-	FileSize        int64       `json:"file_size" db:"file_size"`
-	Operations      []Operation `json:"operations" db:"-"`
-	OperationsJSON  string      `json:"-" db:"operations"`
-	Error           string      `json:"error,omitempty" db:"error"`
-	Progress        int         `json:"progress" db:"progress"`
-	WorkerID        string      `json:"worker_id,omitempty" db:"worker_id"`
-	CreatedAt       time.Time   `json:"created_at" db:"created_at"`
-	UpdatedAt       time.Time   `json:"updated_at" db:"updated_at"`
-	StartedAt       *time.Time  `json:"started_at,omitempty" db:"started_at"`
-	CompletedAt     *time.Time  `json:"completed_at,omitempty" db:"completed_at"`
-	ProcessingTime  *int64      `json:"processing_time_ms,omitempty" db:"processing_time_ms"`
+	ID             uuid.UUID   `json:"id" db:"id"`
+	Operations     []Operation `json:"operations" db:"-"`
+	StartedAt      *time.Time  `json:"started_at,omitempty" db:"started_at"`
+	CompletedAt    *time.Time  `json:"completed_at,omitempty" db:"completed_at"`
+	ProcessingTime *int64      `json:"processing_time_ms,omitempty" db:"processing_time_ms"`
+	CreatedAt      time.Time   `json:"created_at" db:"created_at"`
+	UpdatedAt      time.Time   `json:"updated_at" db:"updated_at"`
+	FileSize       int64       `json:"file_size" db:"file_size"`
+	OriginalKey    string      `json:"original_key" db:"original_key"`
+	ProcessedKey   string      `json:"processed_key,omitempty" db:"processed_key"`
+	OriginalName   string      `json:"original_name" db:"original_name"`
+	ContentType    string      `json:"content_type" db:"content_type"`
+	OperationsJSON string      `json:"-" db:"operations"`
+	Error          string      `json:"error,omitempty" db:"error"`
+	WorkerID       string      `json:"worker_id,omitempty" db:"worker_id"`
+	Status         JobStatus   `json:"status" db:"status"`
+	Progress       int         `json:"progress" db:"progress"`
 }
 
 // NewJob creates a new job with the given parameters
@@ -102,8 +102,8 @@ func (j *Job) UnmarshalOperations() error {
 
 // JobMessage represents a job message in the queue
 type JobMessage struct {
-	JobID      uuid.UUID   `json:"job_id"`
 	Operations []Operation `json:"operations"`
+	JobID      uuid.UUID   `json:"job_id"`
 }
 
 // CreateJobRequest represents the request to create a new job

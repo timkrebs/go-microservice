@@ -27,8 +27,8 @@ type Handlers struct {
 	producer   *queue.Producer
 	logger     *slog.Logger
 	db         *database.DB
-	groupName  string
 	jobMetrics *metrics.JobMetrics
+	groupName  string
 }
 
 // NewHandlers creates a new handlers instance

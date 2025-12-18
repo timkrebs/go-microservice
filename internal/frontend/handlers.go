@@ -14,9 +14,9 @@ import (
 // Handlers holds frontend HTTP handlers
 type Handlers struct {
 	templates *Templates
-	apiURL    string
 	logger    *slog.Logger
 	client    *http.Client
+	apiURL    string
 }
 
 // NewHandlers creates new frontend handlers

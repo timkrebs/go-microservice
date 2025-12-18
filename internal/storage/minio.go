@@ -14,8 +14,8 @@ import (
 // Storage provides object storage operations
 type Storage struct {
 	client     *minio.Client
-	bucketName string
 	metrics    *metrics.StorageMetrics
+	bucketName string
 }
 
 // Config holds MinIO configuration
