@@ -1,0 +1,232 @@
+name: Deploy
+
+on:
+  workflow_run:
+    workflows: ["Docker Build and Publish"]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to deploy'
+        required: true
+        type: choice
+        options:
+          - dev
+          - staging
+          - prod
+      image_tag:
+        description: 'Image tag to deploy'
+        required: true
+        default: 'latest'
+
+env:
+  ARGOCD_SERVER: argocd.qnt9.com
+  ARGOCD_APP_PREFIX: image-processor
+
+jobs:
+  deploy-dev:
+    name: Deploy to Development
+    runs-on: ubuntu-latest
+    if: |
+      (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success') ||
+      (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'dev')
+    environment:
+      name: development
+      url: https://dev.image-processor.qnt9.com
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install ArgoCD CLI
+        run: |
+          curl -sSL -o argocd https://github.com/argoproj/argo-cd/releases/latest/download/argocd-linux-amd64
+          chmod +x argocd
+          sudo mv argocd /usr/local/bin/
+
+      - name: Login to ArgoCD
+        run: |
+          argocd login ${{ env.ARGOCD_SERVER }} \
+            --username ${{ secrets.ARGOCD_USERNAME }} \
+            --password ${{ secrets.ARGOCD_PASSWORD }} \
+            --grpc-web
+
+      - name: Update image tags
+        run: |
+          IMAGE_TAG="${{ github.event.inputs.image_tag || github.sha }}"
+          
+          argocd app set ${{ env.ARGOCD_APP_PREFIX }}-dev \
+            --kustomize-image ghcr.io/timkrebs/go-microservice-api:${IMAGE_TAG} \
+            --kustomize-image ghcr.io/timkrebs/go-microservice-worker:${IMAGE_TAG} \
+            --kustomize-image ghcr.io/timkrebs/go-microservice-frontend:${IMAGE_TAG}
+
+      - name: Sync application
+        run: |
+          argocd app sync ${{ env.ARGOCD_APP_PREFIX }}-dev --prune --force
+
+      - name: Wait for deployment
+        run: |
+          argocd app wait ${{ env.ARGOCD_APP_PREFIX }}-dev \
+            --health \
+            --timeout 600
+
+      - name: Get deployment status
+        run: |
+          argocd app get ${{ env.ARGOCD_APP_PREFIX }}-dev
+
+      - name: Run smoke tests
+        run: |
+          sleep 30
+          curl -f https://dev.image-processor.qnt9.com/api/v1/health || exit 1
+
+  deploy-staging:
+    name: Deploy to Staging
+    runs-on: ubuntu-latest
+    needs: [deploy-dev]
+    if: |
+      (github.event_name == 'workflow_run' && github.ref == 'refs/heads/main') ||
+      (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'staging')
+    environment:
+      name: staging
+      url: https://staging.image-processor.qnt9.com
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install ArgoCD CLI
+        run: |
+          curl -sSL -o argocd https://github.com/argoproj/argo-cd/releases/latest/download/argocd-linux-amd64
+          chmod +x argocd
+          sudo mv argocd /usr/local/bin/
+
+      - name: Login to ArgoCD
+        run: |
+          argocd login ${{ env.ARGOCD_SERVER }} \
+            --username ${{ secrets.ARGOCD_USERNAME }} \
+            --password ${{ secrets.ARGOCD_PASSWORD }} \
+            --grpc-web
+
+      - name: Update image tags
+        run: |
+          IMAGE_TAG="${{ github.event.inputs.image_tag || github.sha }}"
+          
+          argocd app set ${{ env.ARGOCD_APP_PREFIX }}-staging \
+            --kustomize-image ghcr.io/timkrebs/go-microservice-api:${IMAGE_TAG} \
+            --kustomize-image ghcr.io/timkrebs/go-microservice-worker:${IMAGE_TAG} \
+            --kustomize-image ghcr.io/timkrebs/go-microservice-frontend:${IMAGE_TAG}
+
+      - name: Sync application
+        run: |
+          argocd app sync ${{ env.ARGOCD_APP_PREFIX }}-staging --prune
+
+      - name: Wait for deployment
+        run: |
+          argocd app wait ${{ env.ARGOCD_APP_PREFIX }}-staging \
+            --health \
+            --timeout 600
+
+      - name: Run integration tests
+        run: |
+          sleep 30
+          curl -f https://staging.image-processor.qnt9.com/api/v1/health || exit 1
+
+  deploy-production:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    needs: [deploy-staging]
+    if: github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'prod'
+    environment:
+      name: production
+      url: https://image-processor.qnt9.com
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install ArgoCD CLI
+        run: |
+          curl -sSL -o argocd https://github.com/argoproj/argo-cd/releases/latest/download/argocd-linux-amd64
+          chmod +x argocd
+          sudo mv argocd /usr/local/bin/
+
+      - name: Login to ArgoCD
+        run: |
+          argocd login ${{ env.ARGOCD_SERVER }} \
+            --username ${{ secrets.ARGOCD_USERNAME }} \
+            --password ${{ secrets.ARGOCD_PASSWORD }} \
+            --grpc-web
+
+      - name: Create backup
+        run: |
+          argocd app manifests ${{ env.ARGOCD_APP_PREFIX }}-prod > backup-$(date +%Y%m%d-%H%M%S).yaml
+
+      - name: Update image tags
+        run: |
+          IMAGE_TAG="${{ github.event.inputs.image_tag }}"
+          
+          argocd app set ${{ env.ARGOCD_APP_PREFIX }}-prod \
+            --kustomize-image ghcr.io/timkrebs/go-microservice-api:${IMAGE_TAG} \
+            --kustomize-image ghcr.io/timkrebs/go-microservice-worker:${IMAGE_TAG} \
+            --kustomize-image ghcr.io/timkrebs/go-microservice-frontend:${IMAGE_TAG}
+
+      - name: Sync application
+        run: |
+          argocd app sync ${{ env.ARGOCD_APP_PREFIX }}-prod
+
+      - name: Wait for deployment
+        id: deploy
+        continue-on-error: true
+        run: |
+          argocd app wait ${{ env.ARGOCD_APP_PREFIX }}-prod \
+            --health \
+            --timeout 900
+
+      - name: Rollback on failure
+        if: steps.deploy.outcome == 'failure'
+        run: |
+          echo "Deployment failed, initiating rollback"
+          argocd app rollback ${{ env.ARGOCD_APP_PREFIX }}-prod
+          exit 1
+
+      - name: Run smoke tests
+        run: |
+          sleep 60
+          curl -f https://image-processor.qnt9.com/api/v1/health || exit 1
+
+      - name: Notify deployment
+        if: always()
+        uses: 8398a7/action-slack@v3
+        with:
+          status: ${{ job.status }}
+          text: |
+            Production deployment ${{ job.status }}
+            Image: ${{ github.event.inputs.image_tag }}
+            Commit: ${{ github.sha }}
+          webhook_url: ${{ secrets.SLACK_WEBHOOK }}
+
+  create-release:
+    name: Create GitHub Release
+    runs-on: ubuntu-latest
+    needs: [deploy-production]
+    if: github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'prod'
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Generate changelog
+        id: changelog
+        run: |
+          git log --pretty=format:"- %s (%an)" $(git describe --tags --abbrev=0 2>/dev/null || echo "")..HEAD > CHANGELOG.md
+          cat CHANGELOG.md
+
+      - name: Create Release
+        uses: ncipollo/release-action@v1
+        with:
+          tag: ${{ github.event.inputs.image_tag }}
+          name: Release ${{ github.event.inputs.image_tag }}
+          bodyFile: CHANGELOG.md
+          draft: false
+          prerelease: false

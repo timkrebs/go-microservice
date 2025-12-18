@@ -23,6 +23,7 @@ vendor/
 *.swp
 *.swo
 *~
+docs/
 
 # OS files
 .DS_Store

@@ -1,0 +1,58 @@
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: image-processor
+  namespace: argocd
+spec:
+  generators:
+    - list:
+        elements:
+          - environment: dev
+            namespace: image-processor
+            targetRevision: HEAD
+            autoSync: "true"
+            prune: "true"
+          - environment: staging
+            namespace: image-processor-staging
+            targetRevision: main
+            autoSync: "true"
+            prune: "true"
+          - environment: prod
+            namespace: image-processor-prod
+            targetRevision: main
+            autoSync: "false"
+            prune: "false"
+  
+  template:
+    metadata:
+      name: image-processor-{{environment}}
+      annotations:
+        argocd-image-updater.argoproj.io/image-list: |
+          api=ghcr.io/timkrebs/go-microservice-api,
+          worker=ghcr.io/timkrebs/go-microservice-worker,
+          frontend=ghcr.io/timkrebs/go-microservice-frontend
+        argocd-image-updater.argoproj.io/api.update-strategy: latest
+        argocd-image-updater.argoproj.io/worker.update-strategy: latest
+        argocd-image-updater.argoproj.io/frontend.update-strategy: latest
+    spec:
+      project: default
+      
+      source:
+        repoURL: https://github.com/timkrebs/go-microservice.git
+        targetRevision: '{{targetRevision}}'
+        path: deployments/kubernetes/overlays/{{environment}}
+      
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: '{{namespace}}'
+      
+      syncPolicy:
+        syncOptions:
+          - CreateNamespace=true
+          - PrunePropagationPolicy=foreground
+        retry:
+          limit: 5
+          backoff:
+            duration: 5s
+            factor: 2
+            maxDuration: 3m

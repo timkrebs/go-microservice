@@ -6,6 +6,17 @@ namespace: image-processor
 resources:
   - ../../base
 
+images:
+  - name: image-processor-api
+    newName: ghcr.io/timkrebs/go-microservice-api
+    newTag: latest
+  - name: image-processor-worker
+    newName: ghcr.io/timkrebs/go-microservice-worker
+    newTag: latest
+  - name: image-processor-frontend
+    newName: ghcr.io/timkrebs/go-microservice-frontend
+    newTag: latest
+
 # Development-specific patches
 patches:
   # Reduce resource limits for development

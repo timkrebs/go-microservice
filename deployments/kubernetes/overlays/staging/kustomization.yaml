@@ -1,7 +1,7 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
-namespace: image-processor
+namespace: image-processor-staging
 
 resources:
   - ../../base
@@ -17,16 +17,39 @@ images:
     newName: ghcr.io/timkrebs/go-microservice-frontend
     newTag: main
 
-# Production-specific patches
 patches:
-  # Increase resource limits for production
   - patch: |-
       - op: replace
         path: /spec/template/spec/containers/0/resources/requests/cpu
-        value: 250m
+        value: 200m
       - op: replace
         path: /spec/template/spec/containers/0/resources/requests/memory
         value: 256Mi
+      - op: replace
+        path: /spec/template/spec/containers/0/resources/limits/cpu
+        value: 500m
+      - op: replace
+        path: /spec/template/spec/containers/0/resources/limits/memory
+        value: 512Mi
+    target:
+      kind: Deployment
+      name: api
+
+  - patch: |-
+      - op: replace
+        path: /spec/replicas
+        value: 2
+    target:
+      kind: Deployment
+      name: api
+
+  - patch: |-
+      - op: replace
+        path: /spec/template/spec/containers/0/resources/requests/cpu
+        value: 300m
+      - op: replace
+        path: /spec/template/spec/containers/0/resources/requests/memory
+        value: 384Mi
       - op: replace
         path: /spec/template/spec/containers/0/resources/limits/cpu
         value: 1000m
@@ -35,94 +58,42 @@ patches:
         value: 1Gi
     target:
       kind: Deployment
-      name: api
-
-  # Production replica count
-  - patch: |-
-      - op: replace
-        path: /spec/replicas
-        value: 3
-    target:
-      kind: Deployment
-      name: api
-
-  # Worker resource limits for production
-  - patch: |-
-      - op: replace
-        path: /spec/template/spec/containers/0/resources/requests/cpu
-        value: 500m
-      - op: replace
-        path: /spec/template/spec/containers/0/resources/requests/memory
-        value: 512Mi
-      - op: replace
-        path: /spec/template/spec/containers/0/resources/limits/cpu
-        value: 2000m
-      - op: replace
-        path: /spec/template/spec/containers/0/resources/limits/memory
-        value: 2Gi
-    target:
-      kind: Deployment
       name: worker
 
-  # Production HPA settings
   - patch: |-
       - op: replace
         path: /spec/minReplicas
-        value: 3
+        value: 2
       - op: replace
         path: /spec/maxReplicas
-        value: 20
+        value: 10
     target:
       kind: HorizontalPodAutoscaler
       name: api-hpa
 
-  # Production KEDA settings
   - patch: |-
       - op: replace
-        path: /spec/minReplicaCount
-        value: 2
-      - op: replace
         path: /spec/maxReplicaCount
-        value: 50
+        value: 15
     target:
       kind: ScaledObject
       name: worker-scaledobject
 
-  # Increase storage for production
+  - patch: |-
+      - op: replace
+        path: /spec/replicas
+        value: 1
+    target:
+      kind: Deployment
+      name: frontend
+
   - patch: |-
       - op: replace
         path: /spec/resources/requests/storage
-        value: 100Gi
+        value: 50Gi
     target:
       kind: PersistentVolumeClaim
       name: minio-data
 
-  # Frontend replica count for production
-  - patch: |-
-      - op: replace
-        path: /spec/replicas
-        value: 2
-    target:
-      kind: Deployment
-      name: frontend
-
-  # Frontend resource limits for production
-  - patch: |-
-      - op: replace
-        path: /spec/template/spec/containers/0/resources/requests/cpu
-        value: 100m
-      - op: replace
-        path: /spec/template/spec/containers/0/resources/requests/memory
-        value: 128Mi
-      - op: replace
-        path: /spec/template/spec/containers/0/resources/limits/cpu
-        value: 500m
-      - op: replace
-        path: /spec/template/spec/containers/0/resources/limits/memory
-        value: 256Mi
-    target:
-      kind: Deployment
-      name: frontend
-
 commonLabels:
-  environment: production
+  environment: staging
