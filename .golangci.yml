@@ -1,7 +1,6 @@
-version: 2
-
 run:
   timeout: 5m
+  tests: true
 
 linters:
   enable:
@@ -16,48 +15,17 @@ linters:
     - gosec
 
 linters-settings:
-  errcheck:
-    check-type-assertions: true
-    
   govet:
     enable-all: true
     
   misspell:
     locale: US
-    
-  gosec:
-    severity: medium
-    confidence: medium
-      
-  revive:
-    rules:
-      - name: exported
-      - name: error-return
-      - name: error-naming
-      - name: var-naming
-      - name: context-as-argument
-      - name: error-strings
 
 issues:
   exclude-rules:
     - path: _test\.go
       linters:
-        - errcheck
-        - gosec
+        - govet
     - path: cmd/
       linters:
-        - revive
-        - errcheck
-        - gosec
-    - path: internal/
-      linters:
-        - revive
-    - linters:
-        - revive
-      text: "unused-parameter|package-comments|blank-imports|var-naming|exported"
-    - linters:
-        - errcheck
-      text: "Error return value"
-    - linters:
-        - ineffassign
-      text: "ineffectual assignment"
+        - govet
