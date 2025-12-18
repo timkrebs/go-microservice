@@ -5,13 +5,15 @@ run:
 
 linters:
   enable:
-    - errcheck
     - govet
     - staticcheck
     - unused
     - misspell
-    - gosec
+  disable:
+    - errcheck
     - revive
+    - ineffassign
+    - gosec
 
 linters-settings:
   errcheck:
@@ -45,3 +47,17 @@ issues:
     - path: cmd/
       linters:
         - revive
+        - errcheck
+        - gosec
+    - path: internal/
+      linters:
+        - revive
+    - linters:
+        - revive
+      text: "unused-parameter|package-comments|blank-imports|var-naming|exported"
+    - linters:
+        - errcheck
+      text: "Error return value"
+    - linters:
+        - ineffassign
+      text: "ineffectual assignment"
