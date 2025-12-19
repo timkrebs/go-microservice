@@ -51,7 +51,7 @@ func TestNewProducer(t *testing.T) {
 
 	producer := NewProducer(client, "test-stream")
 	if producer == nil {
-		t.Error("NewProducer() returned nil")
+		t.Fatal("NewProducer() returned nil")
 	}
 	if producer.streamName != "test-stream" {
 		t.Errorf("streamName = %q, want test-stream", producer.streamName)
@@ -72,7 +72,7 @@ func TestNewConsumer(t *testing.T) {
 
 	consumer := NewConsumer(client, cfg, logger)
 	if consumer == nil {
-		t.Error("NewConsumer() returned nil")
+		t.Fatal("NewConsumer() returned nil")
 	}
 	if consumer.streamName != "test-stream" {
 		t.Errorf("streamName = %q, want test-stream", consumer.streamName)
