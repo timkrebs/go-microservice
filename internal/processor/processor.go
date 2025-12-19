@@ -23,8 +23,8 @@ func New() *Processor {
 
 // ProcessResult contains the processed image and metadata
 type ProcessResult struct {
-	Data        []byte
 	ContentType string
+	Data        []byte
 	Width       int
 	Height      int
 }
