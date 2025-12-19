@@ -26,14 +26,8 @@ spec:
   template:
     metadata:
       name: image-processor-{{environment}}
-      annotations:
-        argocd-image-updater.argoproj.io/image-list: |
-          api=ghcr.io/timkrebs/go-microservice-api,
-          worker=ghcr.io/timkrebs/go-microservice-worker,
-          frontend=ghcr.io/timkrebs/go-microservice-frontend
-        argocd-image-updater.argoproj.io/api.update-strategy: latest
-        argocd-image-updater.argoproj.io/worker.update-strategy: latest
-        argocd-image-updater.argoproj.io/frontend.update-strategy: latest
+      labels:
+        environment: '{{environment}}'
     spec:
       project: default
       
@@ -47,6 +41,12 @@ spec:
         namespace: '{{namespace}}'
       
       syncPolicy:
+        {{#autoSync}}
+        automated:
+          prune: {{prune}}
+          selfHeal: true
+          allowEmpty: false
+        {{/autoSync}}
         syncOptions:
           - CreateNamespace=true
           - PrunePropagationPolicy=foreground
