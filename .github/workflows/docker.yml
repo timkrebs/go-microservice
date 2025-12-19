@@ -67,11 +67,20 @@ jobs:
             VERSION=${{ github.sha }}
             BUILD_DATE=${{ github.event.head_commit.timestamp }}
 
+      - name: Prepare Trivy scan tag
+        if: github.event_name != 'pull_request'
+        id: trivy-tag
+        run: |
+          # Extract the first tag from metadata output which should exist
+          FIRST_TAG=$(echo '${{ steps.meta.outputs.tags }}' | head -n1)
+          echo "tag=${FIRST_TAG}" >> $GITHUB_OUTPUT
+          echo "Scanning image: ${FIRST_TAG}"
+
       - name: Run Trivy vulnerability scanner
         if: github.event_name != 'pull_request'
         uses: aquasecurity/trivy-action@master
         with:
-          image-ref: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_PREFIX }}-${{ matrix.service }}:${{ github.sha }}
+          image-ref: ${{ steps.trivy-tag.outputs.tag }}
           format: 'sarif'
           output: 'trivy-${{ matrix.service }}.sarif'
           severity: 'CRITICAL,HIGH'
