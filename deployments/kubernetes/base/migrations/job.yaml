@@ -35,43 +35,31 @@ spec:
                   key: POSTGRES_PASSWORD
       containers:
         - name: migrate
-          image: image-processor-api:latest
-          imagePullPolicy: IfNotPresent
+          image: migrate/migrate:v4.17.0
           command:
-            - /bin/sh
+            - sh
             - -c
             - |
               set -e
               echo "Starting database migration..."
-              
-              # Check if migrate binary exists in the image
-              if ! command -v migrate > /dev/null 2>&1; then
-                echo "Error: migrate binary not found in image"
-                echo "Installing golang-migrate..."
-                apk add --no-cache curl
-                curl -L https://github.com/golang-migrate/migrate/releases/download/v4.17.0/migrate.linux-amd64.tar.gz | tar xvz
-                mv migrate /usr/local/bin/migrate
-                chmod +x /usr/local/bin/migrate
-              fi
+              echo "Database URL: ${DATABASE_URL}"
               
               # Run migrations
-              echo "Running migrations from /app/migrations..."
-              migrate -path /app/migrations -database "${DATABASE_URL}" up
+              echo "Running migrations up..."
+              migrate -path /migrations -database "${DATABASE_URL}" up
               
               # Verify migration status
               echo "Current migration version:"
-              migrate -path /app/migrations -database "${DATABASE_URL}" version
+              migrate -path /migrations -database "${DATABASE_URL}" version
               
               echo "Migration completed successfully"
           envFrom:
             - configMapRef:
                 name: image-processor-config
-          env:
-            - name: POSTGRES_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: app-secrets
-                  key: POSTGRES_PASSWORD
+          volumeMounts:
+            - name: migrations
+              mountPath: /migrations
+              readOnly: true
           resources:
             requests:
               cpu: 100m
@@ -79,3 +67,7 @@ spec:
             limits:
               cpu: 500m
               memory: 256Mi
+      volumes:
+        - name: migrations
+          configMap:
+            name: db-migrations

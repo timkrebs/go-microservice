@@ -6,6 +6,7 @@ namespace: image-processor
 resources:
   - namespace.yaml
   - configmap.yaml
+  - migrations-configmap.yaml
   - secret.yaml
   - ingress.yaml
   - postgres/statefulset.yaml
