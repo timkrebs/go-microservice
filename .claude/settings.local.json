@@ -5,7 +5,11 @@
       "Bash(go get:*)",
       "Bash(chmod:*)",
       "Bash(go mod tidy:*)",
-      "Bash(go build:*)"
+      "Bash(go build:*)",
+      "Bash(tree:*)",
+      "Bash(wc:*)",
+      "Bash(go test:*)",
+      "Bash(go tool cover:*)"
     ]
   }
 }
