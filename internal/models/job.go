@@ -45,20 +45,20 @@ type Operation struct {
 
 // Job represents an image processing job
 type Job struct {
-	Operations     []Operation `json:"operations" db:"-"`
+	ID             uuid.UUID   `json:"id" db:"id"`
+	CreatedAt      time.Time   `json:"created_at" db:"created_at"`
+	UpdatedAt      time.Time   `json:"updated_at" db:"updated_at"`
 	StartedAt      *time.Time  `json:"started_at,omitempty" db:"started_at"`
 	CompletedAt    *time.Time  `json:"completed_at,omitempty" db:"completed_at"`
 	ProcessingTime *int64      `json:"processing_time_ms,omitempty" db:"processing_time_ms"`
+	Operations     []Operation `json:"operations" db:"-"`
 	OriginalKey    string      `json:"original_key" db:"original_key"`
-	ProcessedKey   string      `json:"processed_key,omitempty" db:"processed_key"`
 	OriginalName   string      `json:"original_name" db:"original_name"`
 	ContentType    string      `json:"content_type" db:"content_type"`
 	OperationsJSON string      `json:"-" db:"operations"`
 	Error          string      `json:"error,omitempty" db:"error"`
 	WorkerID       string      `json:"worker_id,omitempty" db:"worker_id"`
-	ID             uuid.UUID   `json:"id" db:"id"`
-	CreatedAt      time.Time   `json:"created_at" db:"created_at"`
-	UpdatedAt      time.Time   `json:"updated_at" db:"updated_at"`
+	ProcessedKey   string      `json:"processed_key,omitempty" db:"processed_key"`
 	FileSize       int64       `json:"file_size" db:"file_size"`
 	Status         JobStatus   `json:"status" db:"status"`
 	Progress       int         `json:"progress" db:"progress"`

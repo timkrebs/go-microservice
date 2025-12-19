@@ -25,8 +25,8 @@ func New() *Processor {
 type ProcessResult struct {
 	Data        []byte
 	ContentType string
-	Height      int
 	Width       int
+	Height      int
 }
 
 // Process applies the given operations to an image
@@ -50,7 +50,7 @@ func (p *Processor) Process(reader io.Reader, contentType string, operations []m
 
 	// Encode the result
 	var buf bytes.Buffer
-	outputContentType := contentType
+	var outputContentType string
 
 	switch {
 	case strings.Contains(contentType, "png"), format == "png":
