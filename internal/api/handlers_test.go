@@ -3,7 +3,6 @@ package api
 import (
 	"bytes"
 	"encoding/json"
-	"io"
 	"log/slog"
 	"mime/multipart"
 	"net/http"
@@ -306,7 +305,9 @@ func TestHandlers_CreateJob_InvalidOperationsJSON(t *testing.T) {
 	}
 
 	var result map[string]string
-	json.NewDecoder(recorder.Body).Decode(&result)
+	if err := json.NewDecoder(recorder.Body).Decode(&result); err != nil {
+		t.Logf("Failed to decode response: %v", err)
+	}
 	if !strings.Contains(result["error"], "invalid operations JSON") {
 		t.Errorf("Error = %q, want to contain 'invalid operations JSON'", result["error"])
 	}
@@ -340,7 +341,9 @@ func TestHandlers_CreateJob_InvalidOperation(t *testing.T) {
 	}
 
 	var result map[string]string
-	json.NewDecoder(recorder.Body).Decode(&result)
+	if err := json.NewDecoder(recorder.Body).Decode(&result); err != nil {
+		t.Logf("Failed to decode response: %v", err)
+	}
 	if !strings.Contains(result["error"], "invalid operation") {
 		t.Errorf("Error = %q, want to contain 'invalid operation'", result["error"])
 	}
@@ -371,50 +374,12 @@ func TestHandlers_CreateJob_InvalidImageType(t *testing.T) {
 	}
 
 	var result map[string]string
-	json.NewDecoder(recorder.Body).Decode(&result)
+	if err := json.NewDecoder(recorder.Body).Decode(&result); err != nil {
+		t.Logf("Failed to decode response: %v", err)
+	}
 	if !strings.Contains(result["error"], "invalid image type") {
 		t.Errorf("Error = %q, want to contain 'invalid image type'", result["error"])
 	}
-}
-
-// Mock implementations for testing handlers with dependencies
-
-type mockJobRepository struct {
-	jobs map[string]*models.Job
-}
-
-func (m *mockJobRepository) GetByID(id string) (*models.Job, error) {
-	if job, ok := m.jobs[id]; ok {
-		return job, nil
-	}
-	return nil, nil
-}
-
-type mockStorage struct {
-	files map[string][]byte
-}
-
-func (m *mockStorage) Upload(key string, data io.Reader, size int64, contentType string) error {
-	b, _ := io.ReadAll(data)
-	m.files[key] = b
-	return nil
-}
-
-func (m *mockStorage) Download(key string) (io.ReadCloser, error) {
-	if data, ok := m.files[key]; ok {
-		return io.NopCloser(bytes.NewReader(data)), nil
-	}
-	return nil, nil
-}
-
-// ResponseRecorder helper for SSE testing
-type sseRecorder struct {
-	*httptest.ResponseRecorder
-	flushed bool
-}
-
-func (r *sseRecorder) Flush() {
-	r.flushed = true
 }
 
 func TestNewHandlers(t *testing.T) {
@@ -423,7 +388,7 @@ func TestNewHandlers(t *testing.T) {
 	h := NewHandlers(nil, nil, nil, nil, "test-group", logger)
 
 	if h == nil {
-		t.Error("NewHandlers() returned nil")
+		t.Fatal("NewHandlers() returned nil")
 	}
 	if h.groupName != "test-group" {
 		t.Errorf("groupName = %q, want test-group", h.groupName)
@@ -436,6 +401,10 @@ func TestNewHandlers(t *testing.T) {
 func TestHandlers_SetMetrics(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
 	h := NewHandlers(nil, nil, nil, nil, "test", logger)
+
+	if h == nil {
+		t.Fatal("NewHandlers() returned nil")
+	}
 
 	if h.jobMetrics != nil {
 		t.Error("jobMetrics should be nil initially")
