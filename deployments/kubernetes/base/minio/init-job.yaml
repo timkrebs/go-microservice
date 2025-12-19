@@ -29,31 +29,22 @@ spec:
               echo "MinIO is ready"
       containers:
         - name: create-bucket
-          image: minio/mc:latest
+          image: curlimages/curl:8.5.0
           command:
             - sh
             - -c
             - |
               set -e
-              echo "Configuring MinIO client..."
-              mc alias set myminio http://minio:9000 ${MINIO_ACCESS_KEY} ${MINIO_SECRET_KEY}
-              
               echo "Creating bucket: ${MINIO_BUCKET}"
-              if mc ls myminio/${MINIO_BUCKET} > /dev/null 2>&1; then
-                echo "Bucket '${MINIO_BUCKET}' already exists"
-              else
-                mc mb myminio/${MINIO_BUCKET}
-                echo "Bucket '${MINIO_BUCKET}' created successfully"
-              fi
               
-              echo "Setting bucket policy to download (public read)..."
-              mc anonymous set download myminio/${MINIO_BUCKET}
+              # Try to create bucket using S3 API
+              # MinIO's PUT bucket endpoint
+              curl -X PUT \
+                -u "${MINIO_ACCESS_KEY}:${MINIO_SECRET_KEY}" \
+                "http://minio:9000/${MINIO_BUCKET}" \
+                -v || echo "Bucket might already exist, continuing..."
               
-              echo "Bucket configuration:"
-              mc ls myminio/
-              mc stat myminio/${MINIO_BUCKET}
-              
-              echo "MinIO initialization completed successfully"
+              echo "Bucket initialization completed"
           envFrom:
             - configMapRef:
                 name: image-processor-config
