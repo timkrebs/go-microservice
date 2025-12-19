@@ -24,7 +24,9 @@ jobs:
   update-manifests:
     name: Update Kubernetes Manifests
     runs-on: ubuntu-latest
-    if: github.event.workflow_run.conclusion == 'success' || github.event_name == 'workflow_dispatch'
+    if: |
+      (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success') ||
+      github.event_name == 'workflow_dispatch'
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -36,11 +38,16 @@ jobs:
         run: |
           if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
             TAG="${{ github.event.inputs.image_tag }}"
+          elif [ "${{ github.event_name }}" == "workflow_run" ]; then
+            # Get the SHA from the workflow that triggered this run
+            TAG="sha-${{ github.event.workflow_run.head_sha }}"
           else
             TAG="sha-${{ github.sha }}"
           fi
           echo "tag=${TAG}" >> $GITHUB_OUTPUT
           echo "Deploying tag: ${TAG}"
+          echo "Event: ${{ github.event_name }}"
+          echo "Workflow run SHA: ${{ github.event.workflow_run.head_sha }}"
 
       - name: Determine environment
         id: env
@@ -52,6 +59,11 @@ jobs:
           fi
           echo "environment=${ENV}" >> $GITHUB_OUTPUT
           echo "Deploying to: ${ENV}"
+
+      - name: Install Kustomize
+        run: |
+          curl -s "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh" | bash
+          sudo mv kustomize /usr/local/bin/
 
       - name: Update kustomization with new image tags
         run: |
