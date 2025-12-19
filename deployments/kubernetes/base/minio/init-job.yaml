@@ -67,7 +67,7 @@ spec:
               echo "MinIO initialization completed successfully"
           envFrom:
             - configMapRef:
-                name: app-config
+                name: image-processor-config
           env:
             - name: MINIO_ACCESS_KEY
               valueFrom:

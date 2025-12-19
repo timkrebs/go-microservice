@@ -65,7 +65,7 @@ spec:
               echo "Migration completed successfully"
           envFrom:
             - configMapRef:
-                name: app-config
+                name: image-processor-config
           env:
             - name: POSTGRES_PASSWORD
               valueFrom:
