@@ -202,7 +202,10 @@ func (h *Handlers) ListJobs(w http.ResponseWriter, r *http.Request) {
 		pageSize = 20
 	}
 
-	jobs, total, err := h.jobRepo.List(r.Context(), page, pageSize)
+	// For now, list all jobs without user filtering until we add authentication
+	// TODO: Get userID from session once authentication is implemented
+	var nilUserID uuid.UUID // Zero UUID will show all jobs
+	jobs, total, err := h.jobRepo.List(r.Context(), nilUserID, page, pageSize)
 	if err != nil {
 		h.logger.Error("failed to list jobs", "error", err)
 		h.writeError(w, http.StatusInternalServerError, "failed to list jobs")

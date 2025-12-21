@@ -245,8 +245,8 @@ func (w *Worker) processJob(ctx context.Context, msg *queue.Message) error {
 		return fmt.Errorf("failed to upload processed image: %w", err)
 	}
 
-	// Mark job as completed
-	if err := w.jobRepo.CompleteJob(ctx, jobID, processedKey); err != nil {
+	// Mark job as completed - set 1 hour retention for cleanup
+	if err := w.jobRepo.CompleteJob(ctx, jobID, processedKey, 1); err != nil {
 		return fmt.Errorf("failed to complete job: %w", err)
 	}
 

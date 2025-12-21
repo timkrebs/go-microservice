@@ -1,13 +1,19 @@
 package api
 
 import (
+	"context"
+	"crypto/rand"
+	"encoding/base64"
 	"log/slog"
 	"net/http"
 	"strconv"
+	"sync"
 	"time"
 
 	"github.com/go-chi/chi/v5/middleware"
+	"github.com/google/uuid"
 	"github.com/timkrebs/image-processor/internal/metrics"
+	"github.com/timkrebs/image-processor/internal/models"
 )
 
 // StructuredLogger returns a middleware that logs HTTP requests using slog
