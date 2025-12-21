@@ -200,24 +200,45 @@ func TestWorker_CleanupWithFiles(t *testing.T) {
 	}
 	t.Logf("Cleanup completed successfully")
 
-	// Wait a moment for MinIO to process deletions (eventual consistency)
-	time.Sleep(100 * time.Millisecond)
+	// Wait for MinIO to process deletions with retry (eventual consistency)
+	// Try for up to 1 second with 100ms intervals
+	maxAttempts := 10
+	sleepDuration := 100 * time.Millisecond
 
-	// Verify files were deleted - use StatObject for more reliable checking
 	t.Logf("Checking if original file %q was deleted...", originalKey)
-	_, err = storageClient.Download(ctx, originalKey)
-	if err == nil {
+	originalExists := true
+	for i := 0; i < maxAttempts; i++ {
+		exists, err := storageClient.Exists(ctx, originalKey)
+		if err != nil {
+			t.Fatalf("failed to check if original file exists: %v", err)
+		}
+		if !exists {
+			originalExists = false
+			t.Logf("Original file deletion verified after %d attempts", i+1)
+			break
+		}
+		time.Sleep(sleepDuration)
+	}
+	if originalExists {
 		t.Error("original file should have been deleted")
-	} else {
-		t.Logf("Original file deletion verified: %v", err)
 	}
 
 	t.Logf("Checking if processed file %q was deleted...", processedKey)
-	_, err = storageClient.Download(ctx, processedKey)
-	if err == nil {
+	processedExists := true
+	for i := 0; i < maxAttempts; i++ {
+		exists, err := storageClient.Exists(ctx, processedKey)
+		if err != nil {
+			t.Fatalf("failed to check if processed file exists: %v", err)
+		}
+		if !exists {
+			processedExists = false
+			t.Logf("Processed file deletion verified after %d attempts", i+1)
+			break
+		}
+		time.Sleep(sleepDuration)
+	}
+	if processedExists {
 		t.Error("processed file should have been deleted")
-	} else {
-		t.Logf("Processed file deletion verified: %v", err)
 	}
 
 	jobs, err := worker.jobRepo.GetJobsToCleanup(ctx, 10)

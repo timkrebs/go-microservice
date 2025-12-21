@@ -117,6 +117,20 @@ func (s *Storage) Download(ctx context.Context, key string) (io.ReadCloser, erro
 	return obj, nil
 }
 
+// Exists checks if a file exists in storage
+func (s *Storage) Exists(ctx context.Context, key string) (bool, error) {
+	_, err := s.client.StatObject(ctx, s.bucketName, key, minio.StatObjectOptions{})
+	if err != nil {
+		// Check if error is "object not found"
+		errResponse := minio.ToErrorResponse(err)
+		if errResponse.Code == "NoSuchKey" {
+			return false, nil
+		}
+		return false, err
+	}
+	return true, nil
+}
+
 // Delete removes a file from storage
 func (s *Storage) Delete(ctx context.Context, key string) error {
 	start := time.Now()
