@@ -14,6 +14,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/redis/go-redis/v9"
+	"github.com/timkrebs/image-processor/internal/cleanup"
 	"github.com/timkrebs/image-processor/internal/config"
 	"github.com/timkrebs/image-processor/internal/database"
 	"github.com/timkrebs/image-processor/internal/models"
@@ -122,6 +123,12 @@ func main() {
 		logger:    logger,
 	}
 
+	// Create cleanup worker
+	cleanupWorker := cleanup.NewWorker(jobRepo, storageClient, cleanup.Config{
+		Interval:  5 * time.Minute,
+		BatchSize: 100,
+	}, logger.With("component", "cleanup"))
+
 	// Start health check server
 	go startHealthServer(cfg.HTTPPort, logger)
 
@@ -133,8 +140,17 @@ func main() {
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 
-	// Start worker goroutines
+	// Wait group for all goroutines
 	var wg sync.WaitGroup
+
+	// Start cleanup worker in background
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		cleanupWorker.Start(ctx)
+	}()
+
+	// Start worker goroutines
 	for i := 0; i < cfg.WorkerConcurrency; i++ {
 		wg.Add(1)
 		go func(workerNum int) {
@@ -235,8 +251,8 @@ func (w *Worker) processJob(ctx context.Context, msg *queue.Message) error {
 		return fmt.Errorf("failed to process image: %w", err)
 	}
 
-	// Generate processed key
-	processedKey := fmt.Sprintf("processed/%s/%s", jobID.String(), job.OriginalName)
+	// Generate processed key with user isolation
+	processedKey := fmt.Sprintf("users/%s/processed/%s/%s", job.UserID.String(), jobID.String(), job.OriginalName)
 
 	// Upload processed image
 	logger.Info("uploading processed image", "key", processedKey, "size", len(result.Data))

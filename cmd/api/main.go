@@ -108,12 +108,15 @@ func main() {
 	// Inject metrics into database
 	db.SetMetrics(dbMetrics)
 
+	// Create session store with 24 hour TTL
+	sessionStore := api.NewSessionStore(24 * time.Hour)
+
 	// Create handlers
 	handlers := api.NewHandlers(jobRepo, storageClient, producer, db, cfg.QueueConsumerGroup, logger)
 	handlers.SetMetrics(jobMetrics)
 
 	// Create router
-	router := api.NewRouter(handlers, httpMetrics, cfg.MaxUploadSize, logger)
+	router := api.NewRouter(handlers, httpMetrics, cfg.MaxUploadSize, db, sessionStore, logger)
 
 	// Create HTTP server
 	server := &http.Server{

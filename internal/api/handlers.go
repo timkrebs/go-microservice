@@ -73,6 +73,16 @@ func (h *Handlers) writeError(w http.ResponseWriter, status int, message string)
 func (h *Handlers) CreateJob(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
+	// Get user session (optional for backward compatibility)
+	session, ok := GetSession(ctx)
+	var userID uuid.UUID
+	if ok && session != nil {
+		userID = session.UserID
+	} else {
+		// Use system user for unauthenticated requests
+		userID = uuid.MustParse("00000000-0000-0000-0000-000000000000")
+	}
+
 	// Parse multipart form
 	if err := r.ParseMultipartForm(50 << 20); err != nil { // 50MB max
 		h.writeError(w, http.StatusBadRequest, "failed to parse form: "+err.Error())
@@ -123,9 +133,9 @@ func (h *Handlers) CreateJob(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// Generate storage key
+	// Generate storage key with user isolation
 	id := uuid.New()
-	originalKey := fmt.Sprintf("original/%s/%s", id.String(), header.Filename)
+	originalKey := fmt.Sprintf("users/%s/original/%s/%s", userID.String(), id.String(), header.Filename)
 
 	// Upload to storage
 	if err := h.storage.Upload(ctx, originalKey, file, header.Size, contentType); err != nil {
@@ -137,6 +147,7 @@ func (h *Handlers) CreateJob(w http.ResponseWriter, r *http.Request) {
 	// Create job
 	job := models.NewJob(originalKey, header.Filename, contentType, header.Size, operations)
 	job.ID = id
+	job.UserID = userID
 
 	if err := h.jobRepo.Create(ctx, job); err != nil {
 		h.logger.Error("failed to create job", "error", err)
@@ -202,10 +213,17 @@ func (h *Handlers) ListJobs(w http.ResponseWriter, r *http.Request) {
 		pageSize = 20
 	}
 
-	// For now, list all jobs without user filtering until we add authentication
-	// TODO: Get userID from session once authentication is implemented
-	var nilUserID uuid.UUID // Zero UUID will show all jobs
-	jobs, total, err := h.jobRepo.List(r.Context(), nilUserID, page, pageSize)
+	// Get user session for filtering
+	session, ok := GetSession(r.Context())
+	var userID uuid.UUID
+	if ok && session != nil {
+		userID = session.UserID
+	} else {
+		// Use system user for unauthenticated requests
+		userID = uuid.MustParse("00000000-0000-0000-0000-000000000000")
+	}
+
+	jobs, total, err := h.jobRepo.List(r.Context(), userID, page, pageSize)
 	if err != nil {
 		h.logger.Error("failed to list jobs", "error", err)
 		h.writeError(w, http.StatusInternalServerError, "failed to list jobs")
