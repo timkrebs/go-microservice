@@ -4,69 +4,78 @@ kind: Kustomization
 namespace: image-processor
 
 resources:
-  - ../../base
+- ../../base
 
 images:
-  - name: image-processor-api
-    newName: ghcr.io/timkrebs/go-microservice-api
-    newTag: latest
-  - name: image-processor-worker
-    newName: ghcr.io/timkrebs/go-microservice-worker
-    newTag: latest
-  - name: image-processor-frontend
-    newName: ghcr.io/timkrebs/go-microservice-frontend
-    newTag: latest
+- name: ghcr.io/timkrebs/go-microservice-api
+  newName: ghcr.io/timkrebs/go-microservice-api
+  newTag: sha-fc3cc11b6af02756074352eaef402af7a7b465d5
+- name: ghcr.io/timkrebs/go-microservice-frontend
+  newName: ghcr.io/timkrebs/go-microservice-frontend
+  newTag: sha-fc3cc11b6af02756074352eaef402af7a7b465d5
+- name: ghcr.io/timkrebs/go-microservice-worker
+  newName: ghcr.io/timkrebs/go-microservice-worker
+  newTag: sha-fc3cc11b6af02756074352eaef402af7a7b465d5
+- name: image-processor-api
+  newName: ghcr.io/timkrebs/go-microservice-api
+  newTag: latest
+- name: image-processor-frontend
+  newName: ghcr.io/timkrebs/go-microservice-frontend
+  newTag: latest
+- name: image-processor-worker
+  newName: ghcr.io/timkrebs/go-microservice-worker
+  newTag: latest
 
 # Development-specific patches
-patches:
   # Reduce resource limits for development
-  - patch: |-
-      - op: replace
-        path: /spec/template/spec/containers/0/resources/limits/cpu
-        value: 200m
-      - op: replace
-        path: /spec/template/spec/containers/0/resources/limits/memory
-        value: 256Mi
-    target:
-      kind: Deployment
-      name: api
 
   # Single replica in dev
-  - patch: |-
-      - op: replace
-        path: /spec/replicas
-        value: 1
-    target:
-      kind: Deployment
-      name: api
 
   # Reduce HPA settings for dev
-  - patch: |-
-      - op: replace
-        path: /spec/minReplicas
-        value: 1
-      - op: replace
-        path: /spec/maxReplicas
-        value: 3
-    target:
-      kind: HorizontalPodAutoscaler
-      name: api-hpa
 
   # Reduce KEDA max replicas for dev
-  - patch: |-
-      - op: replace
-        path: /spec/maxReplicaCount
-        value: 5
-    target:
-      kind: ScaledObject
-      name: worker-scaledobject
   # Single frontend replica in dev
-  - patch: |-
-      - op: replace
-        path: /spec/replicas
-        value: 1
-    target:
-      kind: Deployment
-      name: frontend
+patches:
+- patch: |-
+    - op: replace
+      path: /spec/template/spec/containers/0/resources/limits/cpu
+      value: 200m
+    - op: replace
+      path: /spec/template/spec/containers/0/resources/limits/memory
+      value: 256Mi
+  target:
+    kind: Deployment
+    name: api
+- patch: |-
+    - op: replace
+      path: /spec/replicas
+      value: 1
+  target:
+    kind: Deployment
+    name: api
+- patch: |-
+    - op: replace
+      path: /spec/minReplicas
+      value: 1
+    - op: replace
+      path: /spec/maxReplicas
+      value: 3
+  target:
+    kind: HorizontalPodAutoscaler
+    name: api-hpa
+- patch: |-
+    - op: replace
+      path: /spec/maxReplicaCount
+      value: 5
+  target:
+    kind: ScaledObject
+    name: worker-scaledobject
+- patch: |-
+    - op: replace
+      path: /spec/replicas
+      value: 1
+  target:
+    kind: Deployment
+    name: frontend
 commonLabels:
   environment: development
