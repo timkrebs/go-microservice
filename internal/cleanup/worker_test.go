@@ -236,11 +236,11 @@ func TestWorker_CleanupBatchSize(t *testing.T) {
 			t.Fatalf("failed to create job: %v", err)
 		}
 
+		// Set job to processing to populate started_at
+		if err := worker.jobRepo.UpdateStatus(ctx, job.ID, models.JobStatusProcessing); err != nil {
+			t.Fatalf("failed to update status: %v", err)
+		}
 
-tt// Set job to processing to populate started_at
-ttif err := worker.jobRepo.UpdateStatus(ctx, job.ID, models.JobStatusProcessing); err != nil {
-tttt.Fatalf("failed to update status: %v", err)
-tt}
 		if err := worker.jobRepo.CompleteJob(ctx, job.ID, "test/processed-"+job.ID.String()+".txt", 1); err != nil {
 			t.Fatalf("failed to complete job: %v", err)
 		}
