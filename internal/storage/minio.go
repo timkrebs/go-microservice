@@ -134,6 +134,8 @@ func (s *Storage) Delete(ctx context.Context, key string) error {
 		s.metrics.OperationsTotal.WithLabelValues("delete", status).Inc()
 	}
 
+	return err
+
 	if err != nil {
 		return fmt.Errorf("failed to delete object: %w", err)
 	}

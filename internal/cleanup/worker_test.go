@@ -41,7 +41,7 @@ func setupCleanupTest(t *testing.T) (*Worker, *database.DB, *storage.Storage, uu
 		Endpoint:  minioEndpoint,
 		AccessKey: "minioadmin",
 		SecretKey: "minioadmin",
-		Bucket:    "test-cleanup",
+		Bucket:    "images",
 		UseSSL:    false,
 	})
 	if err != nil {

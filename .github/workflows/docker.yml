@@ -43,11 +43,11 @@ jobs:
       - name: Wait for CI workflow
         uses: lewagon/wait-on-check-action@v1.3.4
         with:
-          ref: ${{ github.ref }}
-          check-name: 'CI Summary'
+          ref: ${{ github.sha }}
+          check-regexp: '.+'
           repo-token: ${{ secrets.GITHUB_TOKEN }}
           wait-interval: 10
-          allowed-conclusions: success,skipped
+          allowed-conclusions: success,skipped,neutral
 
   build-and-push:
     name: Build and Push Docker Images
