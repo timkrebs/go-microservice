@@ -46,10 +46,23 @@ else
 fi
 
 # Get tunnel ID
-TUNNEL_ID=$(cloudflared tunnel info $TUNNEL_NAME -o json 2>/dev/null | grep -o '"id":"[^"]*' | cut -d'"' -f4)
+TUNNEL_ID=$(cloudflared tunnel info $TUNNEL_NAME 2>/dev/null | grep -E "^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}" | awk '{print $1}')
+
+# If that didn't work, try to extract from list
+if [ -z "$TUNNEL_ID" ]; then
+    TUNNEL_ID=$(cloudflared tunnel list 2>/dev/null | grep "$TUNNEL_NAME" | awk '{print $1}')
+fi
+
 echo ""
 echo "✓ Tunnel created/exists with ID: $TUNNEL_ID"
 echo ""
+
+if [ -z "$TUNNEL_ID" ]; then
+    echo "❌ Failed to extract tunnel ID"
+    echo "Please run: cloudflared tunnel list"
+    echo "And manually note your tunnel ID"
+    exit 1
+fi
 
 # Step 3: Create Kubernetes secret
 echo "Step 3: Create Kubernetes secret with credentials"

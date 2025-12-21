@@ -5,7 +5,7 @@ metadata:
   namespace: image-processor
 data:
   config.yaml: |
-    tunnel: image-processor-tunnel
+    tunnel: d791749c-ca03-4aae-b16f-445e1a66a156
     credentials-file: /etc/cloudflared/creds/credentials.json
     metrics: 0.0.0.0:2000
     no-autoupdate: true
