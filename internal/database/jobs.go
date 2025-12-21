@@ -273,13 +273,17 @@ func (r *JobRepository) StartProcessing(ctx context.Context, id uuid.UUID, worke
 func (r *JobRepository) CompleteJob(ctx context.Context, id uuid.UUID, processedKey string, retentionHours int) error {
 	now := time.Now()
 
-	// Calculate processing time
-	var startedAt time.Time
+	// Calculate processing time if job was started
+	var startedAt sql.NullTime
 	err := r.db.QueryRowContext(ctx, `SELECT started_at FROM jobs WHERE id = $1`, id).Scan(&startedAt)
 	if err != nil {
 		return fmt.Errorf("failed to get started_at: %w", err)
 	}
-	processingTime := now.Sub(startedAt).Milliseconds()
+
+	var processingTime int64
+	if startedAt.Valid {
+		processingTime = now.Sub(startedAt.Time).Milliseconds()
+	}
 
 	// Set delete_at to completed_at + retention period
 	deleteAt := now.Add(time.Duration(retentionHours) * time.Hour)

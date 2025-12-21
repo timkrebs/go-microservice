@@ -87,7 +87,7 @@ func TestAuthHandlers_Register(t *testing.T) {
 				"username": "ab",
 			},
 			expectedStatus: http.StatusBadRequest,
-			expectedError:  "invalid username",
+			expectedError:  "invalid username (3-100 characters, alphanumeric and _ only)",
 		},
 		{
 			name: "duplicate email",

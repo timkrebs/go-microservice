@@ -255,8 +255,8 @@ func TestConsumer_Consume_NoMessages(t *testing.T) {
 
 	// Try to consume from empty stream
 	msg, err := consumer.Consume(context.Background())
-	if err != nil {
-		t.Fatalf("Consume() error = %v", err)
+	if err != ErrNoMessages {
+		t.Fatalf("Consume() error = %v, want ErrNoMessages", err)
 	}
 	if msg != nil {
 		t.Errorf("Expected nil message from empty stream, got %+v", msg)
