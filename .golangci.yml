@@ -83,7 +83,6 @@ linters-settings:
       - fmt.Print*
       - fmt.Fprint*
       - fmt.Fprintf
-    ignore:
       - github.com/timkrebs/image-processor/internal/database.(*JobRepository).UpdateStatus
       - github.com/timkrebs/image-processor/internal/database.(*JobRepository).FailJob
 
