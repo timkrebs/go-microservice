@@ -44,7 +44,8 @@ logs/
 
 # Build cache
 .cache/
-# Binaries
-api
-frontend
-worker
+
+# Binaries in root directory only
+/api
+/frontend
+/worker
