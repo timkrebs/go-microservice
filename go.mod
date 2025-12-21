@@ -13,6 +13,7 @@ require (
 	github.com/minio/minio-go/v7 v7.0.97
 	github.com/prometheus/client_golang v1.20.5
 	github.com/redis/go-redis/v9 v9.17.2
+	golang.org/x/crypto v0.36.0
 )
 
 require (

@@ -58,7 +58,7 @@ echo "✓ Tunnel created/exists with ID: $TUNNEL_ID"
 echo ""
 
 if [ -z "$TUNNEL_ID" ]; then
-    echo "❌ Failed to extract tunnel ID"
+    echo "Failed to extract tunnel ID"
     echo "Please run: cloudflared tunnel list"
     echo "And manually note your tunnel ID"
     exit 1

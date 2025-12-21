@@ -50,6 +50,7 @@ type Job struct {
 	ProcessingTime *int64      `json:"processing_time_ms,omitempty" db:"processing_time_ms"`
 	StartedAt      *time.Time  `json:"started_at,omitempty" db:"started_at"`
 	CompletedAt    *time.Time  `json:"completed_at,omitempty" db:"completed_at"`
+	DeleteAt       *time.Time  `json:"delete_at,omitempty" db:"delete_at"`
 	OriginalName   string      `json:"original_name" db:"original_name"`
 	OriginalKey    string      `json:"original_key" db:"original_key"`
 	ContentType    string      `json:"content_type" db:"content_type"`
@@ -62,6 +63,7 @@ type Job struct {
 	FileSize       int64       `json:"file_size" db:"file_size"`
 	Progress       int         `json:"progress" db:"progress"`
 	ID             uuid.UUID   `json:"id" db:"id"`
+	UserID         uuid.UUID   `json:"user_id" db:"user_id"`
 }
 
 // NewJob creates a new job with the given parameters

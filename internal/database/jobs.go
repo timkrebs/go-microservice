@@ -30,8 +30,8 @@ func (r *JobRepository) Create(ctx context.Context, job *models.Job) error {
 	}
 
 	query := `
-		INSERT INTO jobs (id, status, original_key, original_name, content_type, file_size, operations, created_at, updated_at)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+		INSERT INTO jobs (id, status, original_key, original_name, content_type, file_size, operations, user_id, created_at, updated_at)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
 	`
 
 	_, err := r.db.ExecContext(ctx, query,
@@ -42,6 +42,7 @@ func (r *JobRepository) Create(ctx context.Context, job *models.Job) error {
 		job.ContentType,
 		job.FileSize,
 		job.OperationsJSON,
+		job.UserID,
 		job.CreatedAt,
 		job.UpdatedAt,
 	)
@@ -59,15 +60,15 @@ func (r *JobRepository) GetByID(ctx context.Context, id uuid.UUID) (*models.Job,
 
 	query := `
 		SELECT id, status, original_key, processed_key, original_name, content_type,
-		       file_size, operations, error, progress, worker_id, created_at, updated_at,
-		       started_at, completed_at, processing_time_ms
+		       file_size, operations, error, progress, worker_id, user_id, created_at, updated_at,
+		       started_at, completed_at, processing_time_ms, delete_at
 		FROM jobs
 		WHERE id = $1
 	`
 
 	job := &models.Job{}
 	var processedKey, errorMsg, workerID sql.NullString
-	var startedAt, completedAt sql.NullTime
+	var startedAt, completedAt, deleteAt sql.NullTime
 	var processingTime sql.NullInt64
 
 	err := r.db.QueryRowContext(ctx, query, id).Scan(
@@ -82,11 +83,13 @@ func (r *JobRepository) GetByID(ctx context.Context, id uuid.UUID) (*models.Job,
 		&errorMsg,
 		&job.Progress,
 		&workerID,
+		&job.UserID,
 		&job.CreatedAt,
 		&job.UpdatedAt,
 		&startedAt,
 		&completedAt,
 		&processingTime,
+		&deleteAt,
 	)
 	if err == sql.ErrNoRows {
 		return nil, nil
@@ -113,6 +116,9 @@ func (r *JobRepository) GetByID(ctx context.Context, id uuid.UUID) (*models.Job,
 	if processingTime.Valid {
 		job.ProcessingTime = &processingTime.Int64
 	}
+	if deleteAt.Valid {
+		job.DeleteAt = &deleteAt.Time
+	}
 
 	if err := job.UnmarshalOperations(); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal operations: %w", err)
@@ -121,8 +127,8 @@ func (r *JobRepository) GetByID(ctx context.Context, id uuid.UUID) (*models.Job,
 	return job, nil
 }
 
-// List retrieves a paginated list of jobs
-func (r *JobRepository) List(ctx context.Context, page, pageSize int) ([]*models.Job, int, error) {
+// List retrieves a paginated list of jobs filtered by user
+func (r *JobRepository) List(ctx context.Context, userID uuid.UUID, page, pageSize int) ([]*models.Job, int, error) {
 	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
 
@@ -134,23 +140,24 @@ func (r *JobRepository) List(ctx context.Context, page, pageSize int) ([]*models
 	}
 	offset := (page - 1) * pageSize
 
-	// Get total count
+	// Get total count for user
 	var total int
-	countQuery := `SELECT COUNT(*) FROM jobs`
-	if err := r.db.QueryRowContext(ctx, countQuery).Scan(&total); err != nil {
+	countQuery := `SELECT COUNT(*) FROM jobs WHERE user_id = $1`
+	if err := r.db.QueryRowContext(ctx, countQuery, userID).Scan(&total); err != nil {
 		return nil, 0, fmt.Errorf("failed to count jobs: %w", err)
 	}
 
 	query := `
 		SELECT id, status, original_key, processed_key, original_name, content_type,
-		       file_size, operations, error, progress, worker_id, created_at, updated_at,
-		       started_at, completed_at, processing_time_ms
+		       file_size, operations, error, progress, worker_id, user_id, created_at, updated_at,
+		       started_at, completed_at, processing_time_ms, delete_at
 		FROM jobs
+		WHERE user_id = $1
 		ORDER BY created_at DESC
-		LIMIT $1 OFFSET $2
+		LIMIT $2 OFFSET $3
 	`
 
-	rows, err := r.db.QueryContext(ctx, query, pageSize, offset)
+	rows, err := r.db.QueryContext(ctx, query, userID, pageSize, offset)
 	if err != nil {
 		return nil, 0, fmt.Errorf("failed to list jobs: %w", err)
 	}
@@ -160,7 +167,7 @@ func (r *JobRepository) List(ctx context.Context, page, pageSize int) ([]*models
 	for rows.Next() {
 		job := &models.Job{}
 		var processedKey, errorMsg, workerID sql.NullString
-		var startedAt, completedAt sql.NullTime
+		var startedAt, completedAt, deleteAt sql.NullTime
 		var processingTime sql.NullInt64
 
 		err := rows.Scan(
@@ -175,11 +182,13 @@ func (r *JobRepository) List(ctx context.Context, page, pageSize int) ([]*models
 			&errorMsg,
 			&job.Progress,
 			&workerID,
+			&job.UserID,
 			&job.CreatedAt,
 			&job.UpdatedAt,
 			&startedAt,
 			&completedAt,
 			&processingTime,
+			&deleteAt,
 		)
 		if err != nil {
 			return nil, 0, fmt.Errorf("failed to scan job: %w", err)
@@ -202,6 +211,9 @@ func (r *JobRepository) List(ctx context.Context, page, pageSize int) ([]*models
 		}
 		if processingTime.Valid {
 			job.ProcessingTime = &processingTime.Int64
+		}
+		if deleteAt.Valid {
+			job.DeleteAt = &deleteAt.Time
 		}
 
 		if err := job.UnmarshalOperations(); err != nil {
@@ -252,8 +264,8 @@ func (r *JobRepository) StartProcessing(ctx context.Context, id uuid.UUID, worke
 	return err
 }
 
-// CompleteJob marks a job as completed
-func (r *JobRepository) CompleteJob(ctx context.Context, id uuid.UUID, processedKey string) error {
+// CompleteJob marks a job as completed and sets deletion time
+func (r *JobRepository) CompleteJob(ctx context.Context, id uuid.UUID, processedKey string, retentionHours int) error {
 	now := time.Now()
 
 	// Calculate processing time
@@ -264,12 +276,15 @@ func (r *JobRepository) CompleteJob(ctx context.Context, id uuid.UUID, processed
 	}
 	processingTime := now.Sub(startedAt).Milliseconds()
 
+	// Set delete_at to completed_at + retention period
+	deleteAt := now.Add(time.Duration(retentionHours) * time.Hour)
+
 	query := `
 		UPDATE jobs
-		SET status = $1, processed_key = $2, progress = 100, completed_at = $3, processing_time_ms = $4
-		WHERE id = $5
+		SET status = $1, processed_key = $2, progress = 100, completed_at = $3, processing_time_ms = $4, delete_at = $5
+		WHERE id = $6
 	`
-	_, err = r.db.ExecContext(ctx, query, models.JobStatusCompleted, processedKey, now, processingTime, id)
+	_, err = r.db.ExecContext(ctx, query, models.JobStatusCompleted, processedKey, now, processingTime, deleteAt, id)
 	return err
 }
 
@@ -319,4 +334,104 @@ func (r *JobRepository) GetPendingJobsCount(ctx context.Context) (int, error) {
 	query := `SELECT COUNT(*) FROM jobs WHERE status IN ($1, $2)`
 	err := r.db.QueryRowContext(ctx, query, models.JobStatusPending, models.JobStatusQueued).Scan(&count)
 	return count, err
+}
+
+// GetJobsToCleanup returns jobs that should be deleted (delete_at < now)
+func (r *JobRepository) GetJobsToCleanup(ctx context.Context, limit int) ([]*models.Job, error) {
+	query := `
+		SELECT id, status, original_key, processed_key, original_name, content_type,
+		       file_size, operations, error, progress, worker_id, user_id, created_at, updated_at,
+		       started_at, completed_at, processing_time_ms, delete_at
+		FROM jobs
+		WHERE delete_at IS NOT NULL AND delete_at < NOW()
+		ORDER BY delete_at ASC
+		LIMIT $1
+	`
+
+	rows, err := r.db.QueryContext(ctx, query, limit)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get jobs to cleanup: %w", err)
+	}
+	defer rows.Close()
+
+	var jobs []*models.Job
+	for rows.Next() {
+		job := &models.Job{}
+		var processedKey, errorMsg, workerID sql.NullString
+		var startedAt, completedAt, deleteAt sql.NullTime
+		var processingTime sql.NullInt64
+
+		err := rows.Scan(
+			&job.ID,
+			&job.Status,
+			&job.OriginalKey,
+			&processedKey,
+			&job.OriginalName,
+			&job.ContentType,
+			&job.FileSize,
+			&job.OperationsJSON,
+			&errorMsg,
+			&job.Progress,
+			&workerID,
+			&job.UserID,
+			&job.CreatedAt,
+			&job.UpdatedAt,
+			&startedAt,
+			&completedAt,
+			&processingTime,
+			&deleteAt,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan job: %w", err)
+		}
+
+		if processedKey.Valid {
+			job.ProcessedKey = processedKey.String
+		}
+		if errorMsg.Valid {
+			job.Error = errorMsg.String
+		}
+		if workerID.Valid {
+			job.WorkerID = workerID.String
+		}
+		if startedAt.Valid {
+			job.StartedAt = &startedAt.Time
+		}
+		if completedAt.Valid {
+			job.CompletedAt = &completedAt.Time
+		}
+		if processingTime.Valid {
+			job.ProcessingTime = &processingTime.Int64
+		}
+		if deleteAt.Valid {
+			job.DeleteAt = &deleteAt.Time
+		}
+
+		if err := job.UnmarshalOperations(); err != nil {
+			return nil, fmt.Errorf("failed to unmarshal operations: %w", err)
+		}
+
+		jobs = append(jobs, job)
+	}
+
+	return jobs, nil
+}
+
+// DeleteJob permanently deletes a job from the database
+func (r *JobRepository) DeleteJob(ctx context.Context, id uuid.UUID) error {
+	query := `DELETE FROM jobs WHERE id = $1`
+	result, err := r.db.ExecContext(ctx, query, id)
+	if err != nil {
+		return fmt.Errorf("failed to delete job: %w", err)
+	}
+
+	rows, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("failed to get rows affected: %w", err)
+	}
+	if rows == 0 {
+		return fmt.Errorf("job not found")
+	}
+
+	return nil
 }
