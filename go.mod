@@ -13,7 +13,7 @@ require (
 	github.com/minio/minio-go/v7 v7.0.97
 	github.com/prometheus/client_golang v1.20.5
 	github.com/redis/go-redis/v9 v9.17.2
-	golang.org/x/crypto v0.36.0
+	golang.org/x/crypto v0.41.0
 )
 
 require (
@@ -35,7 +35,6 @@ require (
 	github.com/prometheus/procfs v0.16.1 // indirect
 	github.com/rs/xid v1.6.0 // indirect
 	github.com/tinylib/msgp v1.3.0 // indirect
-	golang.org/x/crypto v0.41.0 // indirect
 	golang.org/x/image v0.34.0 // indirect
 	golang.org/x/net v0.43.0 // indirect
 	golang.org/x/sys v0.35.0 // indirect
