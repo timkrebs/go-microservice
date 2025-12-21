@@ -1,0 +1,27 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cloudflared-config
+  namespace: image-processor
+data:
+  config.yaml: |
+    tunnel: image-processor-tunnel
+    credentials-file: /etc/cloudflared/creds/credentials.json
+    metrics: 0.0.0.0:2000
+    no-autoupdate: true
+    
+    ingress:
+      # Route app.qnt9.com to frontend (root path)
+      - hostname: app.qnt9.com
+        service: http://frontend:8082
+        originRequest:
+          noTLSVerify: true
+      
+      # Route api.qnt9.com to API service
+      - hostname: api.qnt9.com
+        service: http://api:8080
+        originRequest:
+          noTLSVerify: true
+      
+      # Catch-all rule (required)
+      - service: http_status:404
