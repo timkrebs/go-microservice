@@ -174,6 +174,26 @@ func TestWorker_CleanupWithFiles(t *testing.T) {
 		t.Fatalf("failed to set delete_at: %v", err)
 	}
 
+	// Debug: Verify job is ready for cleanup and has ProcessedKey set
+	jobsToCleanup, err := worker.jobRepo.GetJobsToCleanup(ctx, 10)
+	if err != nil {
+		t.Fatalf("failed to get jobs to cleanup: %v", err)
+	}
+	t.Logf("Found %d jobs ready for cleanup", len(jobsToCleanup))
+	found := false
+	for _, j := range jobsToCleanup {
+		if j.ID == job.ID {
+			found = true
+			t.Logf("Job %s found: OriginalKey=%q, ProcessedKey=%q", j.ID, j.OriginalKey, j.ProcessedKey)
+			if j.ProcessedKey == "" {
+				t.Error("ProcessedKey is empty in job retrieved for cleanup")
+			}
+		}
+	}
+	if !found {
+		t.Error("job not found in cleanup list")
+	}
+
 	if err := worker.cleanup(ctx); err != nil {
 		t.Fatalf("cleanup failed: %v", err)
 	}

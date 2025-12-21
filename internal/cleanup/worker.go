@@ -2,6 +2,7 @@ package cleanup
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
 	"time"
 
@@ -109,6 +110,7 @@ func (w *Worker) cleanup(ctx context.Context) error {
 // cleanupJob removes a single job and its associated files
 func (w *Worker) cleanupJob(ctx context.Context, job *models.Job) error {
 	logger := w.logger.With("job_id", job.ID)
+	var deleteErrors []error
 
 	if job.OriginalKey != "" {
 		logger.Info("deleting original file", "key", job.OriginalKey)
@@ -117,6 +119,9 @@ func (w *Worker) cleanupJob(ctx context.Context, job *models.Job) error {
 				"key", job.OriginalKey,
 				"error", err,
 			)
+			deleteErrors = append(deleteErrors, fmt.Errorf("original file: %w", err))
+		} else {
+			logger.Info("successfully deleted original file", "key", job.OriginalKey)
 		}
 	}
 
@@ -127,7 +132,15 @@ func (w *Worker) cleanupJob(ctx context.Context, job *models.Job) error {
 				"key", job.ProcessedKey,
 				"error", err,
 			)
+			deleteErrors = append(deleteErrors, fmt.Errorf("processed file: %w", err))
+		} else {
+			logger.Info("successfully deleted processed file", "key", job.ProcessedKey)
 		}
+	}
+
+	// If file deletion failed, don't delete the job record yet
+	if len(deleteErrors) > 0 {
+		return fmt.Errorf("failed to delete %d file(s): %v", len(deleteErrors), deleteErrors)
 	}
 
 	logger.Info("deleting job record")
