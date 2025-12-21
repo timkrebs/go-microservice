@@ -120,7 +120,7 @@ func (h *AuthHandlers) Login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Check password
-	if err := user.CheckPassword(req.Password); err != nil {
+	if passErr := user.CheckPassword(req.Password); passErr != nil {
 		h.writeError(w, http.StatusUnauthorized, "invalid email or password")
 		return
 	}
