@@ -12,6 +12,7 @@ import (
 	"testing"
 
 	"github.com/go-chi/chi/v5"
+
 	"github.com/timkrebs/image-processor/internal/models"
 )
 
@@ -167,7 +168,7 @@ func TestHandlers_GetJob_InvalidID(t *testing.T) {
 	h := &Handlers{logger: logger}
 
 	// Create request with invalid UUID
-	req := httptest.NewRequest("GET", "/api/v1/jobs/invalid-uuid", nil)
+	req := httptest.NewRequest("GET", "/api/v1/jobs/invalid-uuid", http.NoBody)
 	recorder := httptest.NewRecorder()
 
 	// Use chi router for proper URL param handling
@@ -184,7 +185,7 @@ func TestHandlers_CancelJob_InvalidID(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
 	h := &Handlers{logger: logger}
 
-	req := httptest.NewRequest("DELETE", "/api/v1/jobs/not-a-uuid", nil)
+	req := httptest.NewRequest("DELETE", "/api/v1/jobs/not-a-uuid", http.NoBody)
 	recorder := httptest.NewRecorder()
 
 	r := chi.NewRouter()
@@ -200,7 +201,7 @@ func TestHandlers_GetImage_InvalidID(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
 	h := &Handlers{logger: logger}
 
-	req := httptest.NewRequest("GET", "/api/v1/images/bad-id", nil)
+	req := httptest.NewRequest("GET", "/api/v1/images/bad-id", http.NoBody)
 	recorder := httptest.NewRecorder()
 
 	r := chi.NewRouter()
@@ -216,7 +217,7 @@ func TestHandlers_StreamJobStatus_InvalidID(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
 	h := &Handlers{logger: logger}
 
-	req := httptest.NewRequest("GET", "/api/v1/jobs/invalid/stream", nil)
+	req := httptest.NewRequest("GET", "/api/v1/jobs/invalid/stream", http.NoBody)
 	recorder := httptest.NewRecorder()
 
 	r := chi.NewRouter()
@@ -248,7 +249,7 @@ func TestHandlers_ListJobs_Pagination(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// Parse query params directly (simulating what handler does)
-			req := httptest.NewRequest("GET", "/api/v1/jobs"+tt.query, nil)
+			req := httptest.NewRequest("GET", "/api/v1/jobs"+tt.query, http.NoBody)
 
 			// The actual parsing happens in handler, just verify request formation
 			if req.URL.Query().Get("page") == "3" && tt.wantPage != 3 {

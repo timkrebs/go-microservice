@@ -14,6 +14,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/redis/go-redis/v9"
+
 	"github.com/timkrebs/image-processor/internal/cleanup"
 	"github.com/timkrebs/image-processor/internal/config"
 	"github.com/timkrebs/image-processor/internal/database"
@@ -23,6 +24,7 @@ import (
 	"github.com/timkrebs/image-processor/internal/storage"
 )
 
+// Worker processes image jobs from the queue
 type Worker struct {
 	id        string
 	jobRepo   *database.JobRepository
@@ -56,7 +58,11 @@ func main() {
 		logger.Error("failed to connect to database", "error", err)
 		os.Exit(1)
 	}
-	defer db.Close()
+	defer func() {
+		if err := db.Close(); err != nil {
+			logger.Error("failed to close database", "error", err)
+		}
+	}()
 	logger.Info("connected to database")
 
 	// Create job repository
@@ -68,13 +74,17 @@ func main() {
 		Password: cfg.RedisPassword,
 		DB:       cfg.RedisDB,
 	})
-	defer redisClient.Close()
+	defer func() {
+		if err := redisClient.Close(); err != nil {
+			logger.Error("failed to close redis", "error", err)
+		}
+	}()
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	if err := redisClient.Ping(ctx).Err(); err != nil {
 		cancel()
 		logger.Error("failed to connect to redis", "error", err)
-		os.Exit(1)
+		return
 	}
 	cancel()
 	logger.Info("connected to redis")
@@ -238,16 +248,24 @@ func (w *Worker) processJob(ctx context.Context, msg *queue.Message) error {
 	logger.Info("downloading original image", "key", job.OriginalKey)
 	reader, err := w.storage.Download(ctx, job.OriginalKey)
 	if err != nil {
-		w.jobRepo.FailJob(ctx, jobID, "failed to download image: "+err.Error())
+		if failErr := w.jobRepo.FailJob(ctx, jobID, "failed to download image: "+err.Error()); failErr != nil {
+			logger.Error("failed to mark job as failed", "error", failErr)
+		}
 		return fmt.Errorf("failed to download image: %w", err)
 	}
-	defer reader.Close()
+	defer func() {
+		if err := reader.Close(); err != nil {
+			logger.Error("failed to close reader", "error", err)
+		}
+	}()
 
 	// Process the image
 	logger.Info("processing image", "operations", len(msg.Job.Operations))
 	result, err := w.processor.Process(reader, job.ContentType, msg.Job.Operations)
 	if err != nil {
-		w.jobRepo.FailJob(ctx, jobID, "failed to process image: "+err.Error())
+		if failErr := w.jobRepo.FailJob(ctx, jobID, "failed to process image: "+err.Error()); failErr != nil {
+			logger.Error("failed to mark job as failed", "error", failErr)
+		}
 		return fmt.Errorf("failed to process image: %w", err)
 	}
 

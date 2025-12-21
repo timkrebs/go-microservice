@@ -13,6 +13,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
+
 	"github.com/timkrebs/image-processor/internal/database"
 	"github.com/timkrebs/image-processor/internal/metrics"
 	"github.com/timkrebs/image-processor/internal/models"

@@ -7,6 +7,7 @@ import (
 	"time"
 
 	_ "github.com/lib/pq"
+
 	"github.com/timkrebs/image-processor/internal/metrics"
 )
 

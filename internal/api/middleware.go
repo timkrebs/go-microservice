@@ -12,6 +12,7 @@ import (
 
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/google/uuid"
+
 	"github.com/timkrebs/image-processor/internal/metrics"
 	"github.com/timkrebs/image-processor/internal/models"
 )

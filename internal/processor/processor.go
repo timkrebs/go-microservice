@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/disintegration/imaging"
+
 	"github.com/timkrebs/image-processor/internal/models"
 )
 

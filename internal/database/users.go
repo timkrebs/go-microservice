@@ -7,6 +7,7 @@ import (
 	"fmt"
 
 	"github.com/google/uuid"
+
 	"github.com/timkrebs/image-processor/internal/models"
 )
 

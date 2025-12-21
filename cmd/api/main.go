@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/redis/go-redis/v9"
+
 	"github.com/timkrebs/image-processor/internal/api"
 	"github.com/timkrebs/image-processor/internal/config"
 	"github.com/timkrebs/image-processor/internal/database"
@@ -65,7 +66,7 @@ func main() {
 	if err := redisClient.Ping(ctx).Err(); err != nil {
 		cancel()
 		logger.Error("failed to connect to redis", "error", err)
-		os.Exit(1)
+		return
 	}
 	cancel()
 	logger.Info("connected to redis")

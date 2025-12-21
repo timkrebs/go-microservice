@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+
 	"github.com/timkrebs/image-processor/internal/database"
 	"github.com/timkrebs/image-processor/internal/models"
 )
@@ -269,7 +270,7 @@ func TestAuthHandlers_Logout(t *testing.T) {
 	}
 	sessionID, _ := sessionStore.Create(user)
 
-	req := httptest.NewRequest(http.MethodPost, "/auth/logout", nil)
+	req := httptest.NewRequest(http.MethodPost, "/auth/logout", http.NoBody)
 	req.AddCookie(&http.Cookie{
 		Name:  "session_id",
 		Value: sessionID,
@@ -345,7 +346,7 @@ func TestAuthHandlers_GetCurrentUser(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			req := httptest.NewRequest(http.MethodGet, "/auth/me", nil)
+			req := httptest.NewRequest(http.MethodGet, "/auth/me", http.NoBody)
 			if tt.sessionID != "" {
 				req.AddCookie(&http.Cookie{
 					Name:  "session_id",

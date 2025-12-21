@@ -72,6 +72,17 @@ linters-settings:
   goimports:
     local-prefixes: github.com/timkrebs/image-processor
 
+  errcheck:
+    check-type-assertions: false
+    check-blank: false
+    exclude-functions:
+      - (net/http.ResponseWriter).Write
+      - (*database/sql.Rows).Close
+      - (*net/http.Response.Body).Close
+      - (io.Closer).Close
+      - fmt.Print*
+      - fmt.Fprint*
+
   gocritic:
     enabled-tags:
       - diagnostic
