@@ -92,6 +92,21 @@ jobs:
           sarif_file: trivy-${{ matrix.service }}.sarif
           category: trivy-${{ matrix.service }}
 
+      - name: Save image digest
+        if: github.event_name != 'pull_request'
+        run: |
+          mkdir -p /tmp/digests
+          echo "${{ steps.build.outputs.digest }}" > /tmp/digests/${{ matrix.service }}.txt
+          echo "Image digest for ${{ matrix.service }}: ${{ steps.build.outputs.digest }}"
+
+      - name: Upload digest artifact
+        if: github.event_name != 'pull_request'
+        uses: actions/upload-artifact@v4
+        with:
+          name: digest-${{ matrix.service }}
+          path: /tmp/digests/${{ matrix.service }}.txt
+          retention-days: 1
+
   sign-images:
     name: Sign Container Images
     runs-on: ubuntu-latest
@@ -105,6 +120,19 @@ jobs:
       matrix:
         service: [api, worker, frontend]
     steps:
+      - name: Download digest artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: digest-${{ matrix.service }}
+          path: /tmp/digests
+
+      - name: Read image digest
+        id: digest
+        run: |
+          DIGEST=$(cat /tmp/digests/${{ matrix.service }}.txt)
+          echo "digest=${DIGEST}" >> $GITHUB_OUTPUT
+          echo "Will sign: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_PREFIX }}-${{ matrix.service }}@${DIGEST}"
+
       - name: Install Cosign
         uses: sigstore/cosign-installer@v3
 
@@ -118,7 +146,7 @@ jobs:
       - name: Sign container image
         run: |
           cosign sign --yes \
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_PREFIX }}-${{ matrix.service }}@${{ github.sha }}
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_PREFIX }}-${{ matrix.service }}@${{ steps.digest.outputs.digest }}
 
   generate-sbom:
     name: Generate SBOM
@@ -135,10 +163,23 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Download digest artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: digest-${{ matrix.service }}
+          path: /tmp/digests
+
+      - name: Read image digest
+        id: digest
+        run: |
+          DIGEST=$(cat /tmp/digests/${{ matrix.service }}.txt)
+          echo "digest=${DIGEST}" >> $GITHUB_OUTPUT
+          echo "Will generate SBOM for: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_PREFIX }}-${{ matrix.service }}@${DIGEST}"
+
       - name: Generate SBOM with Syft
         uses: anchore/sbom-action@v0
         with:
-          image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_PREFIX }}-${{ matrix.service }}:${{ github.sha }}
+          image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_PREFIX }}-${{ matrix.service }}@${{ steps.digest.outputs.digest }}
           format: spdx-json
           output-file: sbom-${{ matrix.service }}.spdx.json
 
