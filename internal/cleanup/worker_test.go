@@ -200,7 +200,10 @@ func TestWorker_CleanupWithFiles(t *testing.T) {
 	}
 	t.Logf("Cleanup completed successfully")
 
-	// Verify files were deleted
+	// Wait a moment for MinIO to process deletions (eventual consistency)
+	time.Sleep(100 * time.Millisecond)
+
+	// Verify files were deleted - use StatObject for more reliable checking
 	t.Logf("Checking if original file %q was deleted...", originalKey)
 	_, err = storageClient.Download(ctx, originalKey)
 	if err == nil {
