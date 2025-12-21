@@ -9,13 +9,13 @@ resources:
 images:
 - name: ghcr.io/timkrebs/go-microservice-api
   newName: ghcr.io/timkrebs/go-microservice-api
-  newTag: sha-fc3cc11b6af02756074352eaef402af7a7b465d5
+  newTag: sha-7ded99e04b2cfcc5316ce2fba78818f054acbc1f
 - name: ghcr.io/timkrebs/go-microservice-frontend
   newName: ghcr.io/timkrebs/go-microservice-frontend
-  newTag: sha-fc3cc11b6af02756074352eaef402af7a7b465d5
+  newTag: sha-7ded99e04b2cfcc5316ce2fba78818f054acbc1f
 - name: ghcr.io/timkrebs/go-microservice-worker
   newName: ghcr.io/timkrebs/go-microservice-worker
-  newTag: sha-fc3cc11b6af02756074352eaef402af7a7b465d5
+  newTag: sha-7ded99e04b2cfcc5316ce2fba78818f054acbc1f
 - name: image-processor-api
   newName: ghcr.io/timkrebs/go-microservice-api
   newTag: latest
