@@ -1,0 +1,289 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to release (e.g., v1.2.3)'
+        required: true
+        type: string
+      prerelease:
+        description: 'Mark as pre-release'
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+  packages: write
+  id-token: write
+
+env:
+  GO_VERSION: '1.24'
+  REGISTRY: ghcr.io
+  IMAGE_NAME_PREFIX: ${{ github.repository }}
+
+jobs:
+  # Validate release
+  validate:
+    name: Validate Release
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      is_prerelease: ${{ steps.version.outputs.is_prerelease }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Determine version
+        id: version
+        run: |
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            VERSION="${{ github.event.inputs.version }}"
+            IS_PRERELEASE="${{ github.event.inputs.prerelease }}"
+          else
+            VERSION="${{ github.ref_name }}"
+            # Check if version contains pre-release identifiers
+            if [[ "$VERSION" =~ (alpha|beta|rc) ]]; then
+              IS_PRERELEASE="true"
+            else
+              IS_PRERELEASE="false"
+            fi
+          fi
+
+          # Validate version format
+          if [[ ! "$VERSION" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9.]+)?$ ]]; then
+            echo "::error::Invalid version format: $VERSION. Expected format: vX.Y.Z or vX.Y.Z-suffix"
+            exit 1
+          fi
+
+          echo "version=${VERSION}" >> $GITHUB_OUTPUT
+          echo "is_prerelease=${IS_PRERELEASE}" >> $GITHUB_OUTPUT
+          echo "Releasing version: ${VERSION} (prerelease: ${IS_PRERELEASE})"
+
+  # Build binaries for all platforms
+  build-binaries:
+    name: Build Binaries
+    runs-on: ubuntu-latest
+    needs: [validate]
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: linux
+            arch: amd64
+          - os: linux
+            arch: arm64
+          - os: darwin
+            arch: amd64
+          - os: darwin
+            arch: arm64
+          - os: windows
+            arch: amd64
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+
+      - name: Build binaries
+        env:
+          VERSION: ${{ needs.validate.outputs.version }}
+          GOOS: ${{ matrix.os }}
+          GOARCH: ${{ matrix.arch }}
+        run: |
+          mkdir -p dist
+
+          for service in api worker frontend; do
+            BINARY_NAME="${service}-${{ matrix.os }}-${{ matrix.arch }}"
+            if [ "${{ matrix.os }}" == "windows" ]; then
+              BINARY_NAME="${BINARY_NAME}.exe"
+            fi
+
+            CGO_ENABLED=0 go build \
+              -ldflags="-w -s -X main.version=${VERSION} -X main.buildTime=$(date -u +%Y-%m-%dT%H:%M:%SZ) -X main.gitCommit=${{ github.sha }}" \
+              -o "dist/${BINARY_NAME}" \
+              "./cmd/${service}"
+
+            echo "Built: dist/${BINARY_NAME}"
+          done
+
+      - name: Create archives
+        run: |
+          cd dist
+          for binary in *; do
+            if [ "${{ matrix.os }}" == "windows" ]; then
+              zip "${binary%.exe}.zip" "$binary"
+            else
+              tar -czvf "${binary}.tar.gz" "$binary"
+            fi
+          done
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: binaries-${{ matrix.os }}-${{ matrix.arch }}
+          path: dist/*.tar.gz
+          if-no-files-found: ignore
+
+      - name: Upload Windows artifacts
+        if: matrix.os == 'windows'
+        uses: actions/upload-artifact@v4
+        with:
+          name: binaries-windows-${{ matrix.arch }}
+          path: dist/*.zip
+
+  # Build and push Docker images
+  build-docker:
+    name: Build Docker Images
+    runs-on: ubuntu-latest
+    needs: [validate]
+    strategy:
+      fail-fast: false
+      matrix:
+        service: [api, worker, frontend]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_PREFIX }}-${{ matrix.service }}
+          tags: |
+            type=semver,pattern={{version}},value=${{ needs.validate.outputs.version }}
+            type=semver,pattern={{major}}.{{minor}},value=${{ needs.validate.outputs.version }}
+            type=semver,pattern={{major}},value=${{ needs.validate.outputs.version }}
+            type=raw,value=latest,enable=${{ needs.validate.outputs.is_prerelease == 'false' }}
+
+      - name: Build and push
+        id: build
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./deployments/docker/Dockerfile.${{ matrix.service }}
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          platforms: linux/amd64,linux/arm64
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          provenance: true
+          sbom: true
+          build-args: |
+            VERSION=${{ needs.validate.outputs.version }}
+            BUILD_DATE=${{ github.event.head_commit.timestamp }}
+            GIT_COMMIT=${{ github.sha }}
+
+      - name: Sign image
+        run: |
+          cosign sign --yes \
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_PREFIX }}-${{ matrix.service }}@${{ steps.build.outputs.digest }}
+        env:
+          COSIGN_EXPERIMENTAL: 1
+
+  # Create GitHub Release
+  create-release:
+    name: Create GitHub Release
+    runs-on: ubuntu-latest
+    needs: [validate, build-binaries, build-docker]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          pattern: binaries-*
+
+      - name: Prepare release assets
+        run: |
+          mkdir -p release
+          find artifacts -type f \( -name "*.tar.gz" -o -name "*.zip" \) -exec mv {} release/ \;
+          ls -la release/
+
+      - name: Generate changelog
+        id: changelog
+        run: |
+          # Get the previous tag
+          PREV_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
+
+          if [ -n "$PREV_TAG" ]; then
+            echo "## Changes since $PREV_TAG" > CHANGELOG.md
+            echo "" >> CHANGELOG.md
+            git log --pretty=format:"- %s (%h)" ${PREV_TAG}..HEAD >> CHANGELOG.md
+          else
+            echo "## Initial Release" > CHANGELOG.md
+            echo "" >> CHANGELOG.md
+            echo "First release of the Image Processor microservice." >> CHANGELOG.md
+          fi
+
+          echo "" >> CHANGELOG.md
+          echo "---" >> CHANGELOG.md
+          echo "" >> CHANGELOG.md
+          echo "## Docker Images" >> CHANGELOG.md
+          echo "" >> CHANGELOG.md
+          echo "Pull the images from GitHub Container Registry:" >> CHANGELOG.md
+          echo "" >> CHANGELOG.md
+          echo "\`\`\`bash" >> CHANGELOG.md
+          echo "docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_PREFIX }}-api:${{ needs.validate.outputs.version }}" >> CHANGELOG.md
+          echo "docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_PREFIX }}-worker:${{ needs.validate.outputs.version }}" >> CHANGELOG.md
+          echo "docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_PREFIX }}-frontend:${{ needs.validate.outputs.version }}" >> CHANGELOG.md
+          echo "\`\`\`" >> CHANGELOG.md
+
+          cat CHANGELOG.md
+
+      - name: Generate checksums
+        run: |
+          cd release
+          sha256sum * > checksums.txt
+          cat checksums.txt
+
+      - name: Create Release
+        uses: ncipollo/release-action@v1
+        with:
+          tag: ${{ needs.validate.outputs.version }}
+          name: Release ${{ needs.validate.outputs.version }}
+          bodyFile: CHANGELOG.md
+          artifacts: "release/*"
+          draft: false
+          prerelease: ${{ needs.validate.outputs.is_prerelease == 'true' }}
+          generateReleaseNotes: true
+          makeLatest: ${{ needs.validate.outputs.is_prerelease == 'false' }}
+
+      - name: Release summary
+        run: |
+          echo "## Release Created" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Version:** ${{ needs.validate.outputs.version }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Pre-release:** ${{ needs.validate.outputs.is_prerelease }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Assets" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          ls -la release/ >> $GITHUB_STEP_SUMMARY

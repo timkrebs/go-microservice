@@ -1,4 +1,5 @@
 version: 2
+
 updates:
   # Go modules
   - package-ecosystem: "gomod"
@@ -10,19 +11,24 @@ updates:
       timezone: "Europe/Berlin"
     open-pull-requests-limit: 10
     commit-message:
-      prefix: "deps"
+      prefix: "deps(go)"
     labels:
       - "dependencies"
       - "go"
+      - "automerge"
     reviewers:
       - "timkrebs"
     groups:
-      go-minor:
+      go-minor-patch:
         patterns:
           - "*"
         update-types:
           - "minor"
           - "patch"
+    ignore:
+      # Ignore major version updates - review manually
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
 
   # GitHub Actions
   - package-ecosystem: "github-actions"
@@ -38,10 +44,11 @@ updates:
     labels:
       - "dependencies"
       - "github-actions"
+      - "automerge"
     reviewers:
       - "timkrebs"
     groups:
-      actions-minor:
+      github-actions:
         patterns:
           - "*"
         update-types:
@@ -56,7 +63,7 @@ updates:
       day: "monday"
       time: "09:00"
       timezone: "Europe/Berlin"
-    open-pull-requests-limit: 3
+    open-pull-requests-limit: 5
     commit-message:
       prefix: "docker"
     labels:
@@ -64,3 +71,10 @@ updates:
       - "docker"
     reviewers:
       - "timkrebs"
+    groups:
+      docker-images:
+        patterns:
+          - "*"
+        update-types:
+          - "minor"
+          - "patch"

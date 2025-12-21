@@ -1,7 +1,7 @@
 package cleanup
-package cleanup
 
 import (
+	"bytes"
 	"context"
 	"log/slog"
 	"os"
@@ -10,250 +10,257 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/timkrebs/image-processor/internal/database"
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-}	}		t.Errorf("expected default batch size 100, got %d", worker.batchSize)	if worker.batchSize != 100 {	}		t.Errorf("expected default interval 5m, got %v", worker.interval)	if worker.interval != 5*time.Minute {	worker := NewWorker(nil, nil, Config{}, logger)	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))func TestNewWorker_DefaultConfig(t *testing.T) {}	}		t.Errorf("expected 5 remaining jobs, got %d", len(remainingJobs))	if len(remainingJobs) != 5 {	}		t.Fatalf("failed to get remaining jobs: %v", err)	if err != nil {	remainingJobs, err := worker.jobRepo.GetJobsToCleanup(ctx, 100)	}		t.Fatalf("cleanup failed: %v", err)	if err := worker.cleanup(ctx); err != nil {	}		}			t.Fatalf("failed to set delete_at: %v", err)		if err != nil {		_, err = db.ExecContext(ctx, "UPDATE jobs SET delete_at = $1 WHERE id = $2", deleteAt, job.ID)		deleteAt := time.Now().Add(-1 * time.Hour)		}			t.Fatalf("failed to complete job: %v", err)		if err := worker.jobRepo.CompleteJob(ctx, job.ID, "test/processed-"+job.ID.String()+".txt", 1); err != nil {		}			t.Fatalf("failed to create job: %v", err)		if err != nil {		err := worker.jobRepo.Create(ctx, job)		}			Operations:   []byte("[]"),			FileSize:     100,			ContentType:  "text/plain",			OriginalName: "file.txt",			OriginalKey:  "test/file-" + uuid.New().String() + ".txt",			Status:       "completed",			UserID:       userID,			ID:           uuid.New(),		job := &models.Job{	for i := 0; i < 10; i++ {	ctx := context.Background()	worker.batchSize = 5	defer db.Close()	worker, db, _, userID := setupCleanupTest(t)func TestWorker_CleanupBatchSize(t *testing.T) {}	}		t.Fatalf("cleanup should not fail when no jobs ready: %v", err)	if err := worker.cleanup(ctx); err != nil {	ctx := context.Background()	defer db.Close()	worker, db, _, _ := setupCleanupTest(t)func TestWorker_CleanupNoJobsReady(t *testing.T) {}	}		}			t.Error("job should have been cleaned up")		if j.ID == job.ID {	for _, j := range jobs {	}		t.Fatalf("failed to get jobs to cleanup: %v", err)	if err != nil {	jobs, err := worker.jobRepo.GetJobsToCleanup(ctx, 10)	}		t.Error("processed file should have been deleted")	if err == nil {	_, err = storageClient.Get(ctx, processedKey)	}		t.Error("original file should have been deleted")	if err == nil {	_, err = storageClient.Get(ctx, originalKey)	}		t.Fatalf("cleanup failed: %v", err)	if err := worker.cleanup(ctx); err != nil {	}		t.Fatalf("failed to set delete_at: %v", err)	if err != nil {	_, err = db.ExecContext(ctx, "UPDATE jobs SET delete_at = $1 WHERE id = $2", deleteAt, job.ID)	deleteAt := time.Now().Add(-1 * time.Hour)	}		t.Fatalf("failed to complete job: %v", err)	if err := worker.jobRepo.CompleteJob(ctx, job.ID, processedKey, 1); err != nil {	}		t.Fatalf("failed to create job: %v", err)	if err != nil {	err = worker.jobRepo.Create(ctx, job)	}		Operations:   []byte("[]"),		FileSize:     16,		ContentType:  "text/plain",		OriginalName: "test.txt",		OriginalKey:  originalKey,		Status:       "completed",		UserID:       userID,		ID:           uuid.New(),	job := &models.Job{	}		t.Fatalf("failed to upload processed file: %v", err)	if err != nil {	err = storageClient.Upload(ctx, processedKey, []byte("processed content"), 17, "text/plain")	}		t.Fatalf("failed to upload original file: %v", err)	if err != nil {	err := storageClient.Upload(ctx, originalKey, []byte("original content"), 16, "text/plain")	processedKey := "cleanup-test/processed-" + uuid.New().String() + ".txt"	originalKey := "cleanup-test/original-" + uuid.New().String() + ".txt"	ctx := context.Background()	defer db.Close()	worker, db, storageClient, userID := setupCleanupTest(t)func TestWorker_CleanupWithFiles(t *testing.T) {}	}		}			t.Error("job should have been cleaned up")		if j.ID == job.ID {	for _, j := range jobs {	}		t.Fatalf("failed to get jobs to cleanup: %v", err)	if err != nil {	jobs, err := worker.jobRepo.GetJobsToCleanup(ctx, 10)	}		t.Fatalf("cleanup failed: %v", err)	if err := worker.cleanup(ctx); err != nil {	}		t.Fatalf("failed to set delete_at: %v", err)	if err != nil {	_, err = db.ExecContext(ctx, "UPDATE jobs SET delete_at = $1 WHERE id = $2", deleteAt, job.ID)	}		t.Fatalf("failed to complete job: %v", err)	if err := worker.jobRepo.CompleteJob(ctx, job.ID, processedKey, 1); err != nil {	deleteAt := time.Now().Add(-1 * time.Hour)	processedKey := "test/processed.jpg"	}		t.Fatalf("failed to create job: %v", err)	if err != nil {	err := worker.jobRepo.Create(ctx, job)	}		Operations:   []byte("[]"),		FileSize:     1024,		ContentType:  "image/jpeg",		OriginalName: "original.jpg",		OriginalKey:  "test/original.jpg",		Status:       "completed",		UserID:       userID,		ID:           uuid.New(),	job := &models.Job{	ctx := context.Background()	defer db.Close()	worker, db, storageClient, userID := setupCleanupTest(t)func TestWorker_Cleanup(t *testing.T) {}	return worker, db, storageClient, systemUserID	}, logger)		BatchSize: 10,		Interval:  1 * time.Minute,	worker := NewWorker(jobRepo, storageClient, Config{	jobRepo := database.NewJobRepository(db)	systemUserID := uuid.MustParse("00000000-0000-0000-0000-000000000000")	}		t.Fatalf("failed to ensure bucket: %v", err)	if err := storageClient.EnsureBucket(ctx); err != nil {	defer cancel()	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)	}		t.Fatalf("failed to create storage client: %v", err)	if err != nil {	})		UseSSL:    false,		Bucket:    "test-cleanup",		SecretKey: "minioadmin",		AccessKey: "minioadmin",		Endpoint:  minioEndpoint,	storageClient, err := storage.New(storage.Config{	}		minioEndpoint = "localhost:9000"	if minioEndpoint == "" {	minioEndpoint := os.Getenv("TEST_MINIO_ENDPOINT")	}		t.Fatalf("failed to connect to database: %v", err)	if err != nil {	db, err := database.New(dbURL, 5)	}		t.Skip("TEST_DATABASE_URL not set")	if dbURL == "" {	dbURL := os.Getenv("TEST_DATABASE_URL")	}))		Level: slog.LevelError,	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{	t.Helper()func setupCleanupTest(t *testing.T) (*Worker, *database.DB, *storage.Storage, uuid.UUID) {)	"github.com/timkrebs/image-processor/internal/storage"	"github.com/timkrebs/image-processor/internal/models"
+	"github.com/timkrebs/image-processor/internal/models"
+	"github.com/timkrebs/image-processor/internal/storage"
+)
+
+func setupCleanupTest(t *testing.T) (*Worker, *database.DB, *storage.Storage, uuid.UUID) {
+	t.Helper()
+
+	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
+		Level: slog.LevelError,
+	}))
+
+	dbURL := os.Getenv("TEST_DATABASE_URL")
+	if dbURL == "" {
+		t.Skip("TEST_DATABASE_URL not set")
+	}
+
+	db, err := database.New(dbURL, 5)
+	if err != nil {
+		t.Fatalf("failed to connect to database: %v", err)
+	}
+
+	minioEndpoint := os.Getenv("TEST_MINIO_ENDPOINT")
+	if minioEndpoint == "" {
+		minioEndpoint = "localhost:9000"
+	}
+
+	storageClient, err := storage.New(storage.Config{
+		Endpoint:  minioEndpoint,
+		AccessKey: "minioadmin",
+		SecretKey: "minioadmin",
+		Bucket:    "test-cleanup",
+		UseSSL:    false,
+	})
+	if err != nil {
+		t.Fatalf("failed to create storage client: %v", err)
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	if err := storageClient.EnsureBucket(ctx); err != nil {
+		t.Fatalf("failed to ensure bucket: %v", err)
+	}
+
+	systemUserID := uuid.MustParse("00000000-0000-0000-0000-000000000000")
+	jobRepo := database.NewJobRepository(db)
+
+	worker := NewWorker(jobRepo, storageClient, Config{
+		Interval:  1 * time.Minute,
+		BatchSize: 10,
+	}, logger)
+
+	return worker, db, storageClient, systemUserID
+}
+
+func TestWorker_Cleanup(t *testing.T) {
+	worker, db, storageClient, userID := setupCleanupTest(t)
+	defer db.Close()
+
+	ctx := context.Background()
+
+	job := &models.Job{
+		ID:           uuid.New(),
+		UserID:       userID,
+		Status:       "completed",
+		OriginalKey:  "test/original.jpg",
+		OriginalName: "original.jpg",
+		ContentType:  "image/jpeg",
+		FileSize:     1024,
+		Operations:   []models.Operation{},
+	}
+
+	err := worker.jobRepo.Create(ctx, job)
+	if err != nil {
+		t.Fatalf("failed to create job: %v", err)
+	}
+
+	processedKey := "test/processed.jpg"
+	if err := worker.jobRepo.CompleteJob(ctx, job.ID, processedKey, 1); err != nil {
+		t.Fatalf("failed to complete job: %v", err)
+	}
+
+	deleteAt := time.Now().Add(-1 * time.Hour)
+	_, err = db.ExecContext(ctx, "UPDATE jobs SET delete_at = $1 WHERE id = $2", deleteAt, job.ID)
+	if err != nil {
+		t.Fatalf("failed to set delete_at: %v", err)
+	}
+
+	if err := worker.cleanup(ctx); err != nil {
+		t.Fatalf("cleanup failed: %v", err)
+	}
+
+	jobs, err := worker.jobRepo.GetJobsToCleanup(ctx, 10)
+	if err != nil {
+		t.Fatalf("failed to get jobs to cleanup: %v", err)
+	}
+
+	for _, j := range jobs {
+		if j.ID == job.ID {
+			t.Error("job should have been cleaned up")
+		}
+	}
+
+	_ = storageClient // Avoid unused variable warning
+}
+
+func TestWorker_CleanupWithFiles(t *testing.T) {
+	worker, db, storageClient, userID := setupCleanupTest(t)
+	defer db.Close()
+
+	ctx := context.Background()
+
+	originalKey := "cleanup-test/original-" + uuid.New().String() + ".txt"
+	processedKey := "cleanup-test/processed-" + uuid.New().String() + ".txt"
+
+	originalContent := []byte("original content")
+	err := storageClient.Upload(ctx, originalKey, bytes.NewReader(originalContent), int64(len(originalContent)), "text/plain")
+	if err != nil {
+		t.Fatalf("failed to upload original file: %v", err)
+	}
+
+	processedContent := []byte("processed content")
+	err = storageClient.Upload(ctx, processedKey, bytes.NewReader(processedContent), int64(len(processedContent)), "text/plain")
+	if err != nil {
+		t.Fatalf("failed to upload processed file: %v", err)
+	}
+
+	job := &models.Job{
+		ID:           uuid.New(),
+		UserID:       userID,
+		Status:       "completed",
+		OriginalKey:  originalKey,
+		OriginalName: "test.txt",
+		ContentType:  "text/plain",
+		FileSize:     16,
+		Operations:   []models.Operation{},
+	}
+
+	err = worker.jobRepo.Create(ctx, job)
+	if err != nil {
+		t.Fatalf("failed to create job: %v", err)
+	}
+
+	if err := worker.jobRepo.CompleteJob(ctx, job.ID, processedKey, 1); err != nil {
+		t.Fatalf("failed to complete job: %v", err)
+	}
+
+	deleteAt := time.Now().Add(-1 * time.Hour)
+	_, err = db.ExecContext(ctx, "UPDATE jobs SET delete_at = $1 WHERE id = $2", deleteAt, job.ID)
+	if err != nil {
+		t.Fatalf("failed to set delete_at: %v", err)
+	}
+
+	if err := worker.cleanup(ctx); err != nil {
+		t.Fatalf("cleanup failed: %v", err)
+	}
+
+	_, err = storageClient.Download(ctx, originalKey)
+	if err == nil {
+		t.Error("original file should have been deleted")
+	}
+
+	_, err = storageClient.Download(ctx, processedKey)
+	if err == nil {
+		t.Error("processed file should have been deleted")
+	}
+
+	jobs, err := worker.jobRepo.GetJobsToCleanup(ctx, 10)
+	if err != nil {
+		t.Fatalf("failed to get jobs to cleanup: %v", err)
+	}
+
+	for _, j := range jobs {
+		if j.ID == job.ID {
+			t.Error("job should have been cleaned up")
+		}
+	}
+}
+
+func TestWorker_CleanupNoJobsReady(t *testing.T) {
+	worker, db, _, _ := setupCleanupTest(t)
+	defer db.Close()
+
+	ctx := context.Background()
+
+	if err := worker.cleanup(ctx); err != nil {
+		t.Fatalf("cleanup should not fail when no jobs ready: %v", err)
+	}
+}
+
+func TestWorker_CleanupBatchSize(t *testing.T) {
+	worker, db, _, userID := setupCleanupTest(t)
+	defer db.Close()
+
+	worker.batchSize = 5
+	ctx := context.Background()
+
+	// Create 10 jobs with delete_at in the past
+	for i := 0; i < 10; i++ {
+		job := &models.Job{
+			ID:           uuid.New(),
+			UserID:       userID,
+			Status:       "completed",
+			OriginalKey:  "test/file-" + uuid.New().String() + ".txt",
+			OriginalName: "file.txt",
+			ContentType:  "text/plain",
+			FileSize:     100,
+			Operations:   []models.Operation{},
+		}
+
+		err := worker.jobRepo.Create(ctx, job)
+		if err != nil {
+			t.Fatalf("failed to create job: %v", err)
+		}
+
+		if err := worker.jobRepo.CompleteJob(ctx, job.ID, "test/processed-"+job.ID.String()+".txt", 1); err != nil {
+			t.Fatalf("failed to complete job: %v", err)
+		}
+
+		deleteAt := time.Now().Add(-1 * time.Hour)
+		_, err = db.ExecContext(ctx, "UPDATE jobs SET delete_at = $1 WHERE id = $2", deleteAt, job.ID)
+		if err != nil {
+			t.Fatalf("failed to set delete_at: %v", err)
+		}
+	}
+
+	// Run cleanup - should only process 5 jobs due to batch size
+	if err := worker.cleanup(ctx); err != nil {
+		t.Fatalf("cleanup failed: %v", err)
+	}
+
+	// Check that 5 jobs remain
+	remainingJobs, err := worker.jobRepo.GetJobsToCleanup(ctx, 100)
+	if err != nil {
+		t.Fatalf("failed to get remaining jobs: %v", err)
+	}
+
+	if len(remainingJobs) != 5 {
+		t.Errorf("expected 5 remaining jobs, got %d", len(remainingJobs))
+	}
+}
+
+func TestNewWorker_DefaultConfig(t *testing.T) {
+	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
+	worker := NewWorker(nil, nil, Config{}, logger)
+
+	if worker.interval != 5*time.Minute {
+		t.Errorf("expected default interval 5m, got %v", worker.interval)
+	}
+
+	if worker.batchSize != 100 {
+		t.Errorf("expected default batch size 100, got %d", worker.batchSize)
+	}
+}

@@ -1,0 +1,82 @@
+# Pre-commit hooks for local development
+# Installation:
+#   pip install pre-commit
+#   pre-commit install
+#   pre-commit run --all-files
+
+default_stages: [pre-commit]
+fail_fast: false
+
+repos:
+  # Standard pre-commit hooks
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: trailing-whitespace
+        exclude: '\.md$'
+      - id: end-of-file-fixer
+        exclude: '\.md$'
+      - id: check-yaml
+        args: ['--unsafe']  # Allow custom YAML tags
+      - id: check-json
+      - id: check-added-large-files
+        args: ['--maxkb=5000']
+      - id: detect-private-key
+      - id: check-merge-conflict
+      - id: mixed-line-ending
+        args: ['--fix=lf']
+      - id: check-case-conflict
+      - id: check-executables-have-shebangs
+      - id: check-shebang-scripts-are-executable
+
+  # Go-specific hooks
+  - repo: https://github.com/dnephin/pre-commit-golang
+    rev: v0.5.1
+    hooks:
+      - id: go-fmt
+      - id: go-vet
+      - id: go-mod-tidy
+      - id: go-unit-tests
+        args: ['-short', '-race', '-timeout=60s']
+        stages: [pre-push]  # Run on push only (slower)
+
+  # Golangci-lint
+  - repo: https://github.com/golangci/golangci-lint
+    rev: v1.64.8
+    hooks:
+      - id: golangci-lint
+        args: ['--timeout=5m']
+
+  # Security scanning
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.21.2
+    hooks:
+      - id: gitleaks
+
+  # Dockerfile linting
+  - repo: https://github.com/hadolint/hadolint
+    rev: v2.12.0
+    hooks:
+      - id: hadolint-docker
+        args: ['--ignore', 'DL3018', '--ignore', 'DL3008']  # Ignore pinning versions
+
+  # Shell script linting
+  - repo: https://github.com/shellcheck-py/shellcheck-py
+    rev: v0.10.0.1
+    hooks:
+      - id: shellcheck
+        args: ['--severity=warning']
+
+  # YAML linting
+  - repo: https://github.com/adrienverge/yamllint
+    rev: v1.35.1
+    hooks:
+      - id: yamllint
+        args: ['-c', '.yamllint.yml']
+        exclude: 'deployments/kubernetes/'
+
+# CI-specific configuration
+ci:
+  autofix_prs: true
+  autoupdate_schedule: weekly
+  autoupdate_commit_msg: 'chore(pre-commit): auto-update hooks'

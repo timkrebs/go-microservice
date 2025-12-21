@@ -1,0 +1,18 @@
+# Code Owners for the Image Processor project
+# These owners will be requested for review when a PR is opened
+
+# Default owners for everything in the repo
+* @timkrebs
+
+# CI/CD and infrastructure
+/.github/ @timkrebs
+/deployments/ @timkrebs
+/Makefile @timkrebs
+/docker-compose*.yml @timkrebs
+
+# Core application code
+/cmd/ @timkrebs
+/internal/ @timkrebs
+
+# Database and migrations
+/migrations/ @timkrebs
