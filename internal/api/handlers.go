@@ -170,7 +170,9 @@ func (h *Handlers) CreateJob(w http.ResponseWriter, r *http.Request) {
 	if err := h.producer.Enqueue(ctx, msg); err != nil {
 		h.logger.Error("failed to enqueue job", "error", err)
 		// Update status back to pending on queue failure
-		h.jobRepo.UpdateStatus(ctx, job.ID, models.JobStatusPending)
+		if updateErr := h.jobRepo.UpdateStatus(ctx, job.ID, models.JobStatusPending); updateErr != nil {
+			h.logger.Error("failed to update job status", "error", updateErr)
+		}
 		h.writeError(w, http.StatusInternalServerError, "failed to queue job")
 		return
 	}

@@ -3,6 +3,7 @@ package queue
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log/slog"
 	"time"
@@ -11,6 +12,9 @@ import (
 
 	"github.com/timkrebs/image-processor/internal/models"
 )
+
+// ErrNoMessages is returned when no messages are available in the stream
+var ErrNoMessages = errors.New("no messages available")
 
 // Consumer reads jobs from the Redis stream
 type Consumer struct {
@@ -87,13 +91,13 @@ func (c *Consumer) Consume(ctx context.Context) (*Message, error) {
 	}).Result()
 	if err != nil {
 		if err == redis.Nil {
-			return nil, nil // No messages available
+			return nil, ErrNoMessages
 		}
 		return nil, fmt.Errorf("failed to read from stream: %w", err)
 	}
 
 	if len(streams) == 0 || len(streams[0].Messages) == 0 {
-		return nil, nil
+		return nil, ErrNoMessages
 	}
 
 	return c.parseMessage(streams[0].Messages[0])

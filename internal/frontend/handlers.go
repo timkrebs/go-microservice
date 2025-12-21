@@ -38,7 +38,9 @@ func (h *Handlers) Home(w http.ResponseWriter, r *http.Request) {
 	if err == nil && resp.StatusCode == http.StatusOK {
 		defer resp.Body.Close()
 		stats = &models.QueueStats{}
-		json.NewDecoder(resp.Body).Decode(stats)
+		if err := json.NewDecoder(resp.Body).Decode(stats); err != nil {
+			stats = nil // Reset on decode error
+		}
 	}
 
 	data := PageData{
@@ -191,5 +193,8 @@ func (h *Handlers) ProxyAPI(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(resp.StatusCode)
-	io.Copy(w, resp.Body)
+	if _, err := io.Copy(w, resp.Body); err != nil {
+		// Response headers already sent, can't return error to client
+		h.logger.Error("failed to copy response body", "error", err)
+	}
 }

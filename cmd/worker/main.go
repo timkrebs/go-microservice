@@ -275,7 +275,9 @@ func (w *Worker) processJob(ctx context.Context, msg *queue.Message) error {
 	// Upload processed image
 	logger.Info("uploading processed image", "key", processedKey, "size", len(result.Data))
 	if err := w.storage.Upload(ctx, processedKey, bytes.NewReader(result.Data), int64(len(result.Data)), result.ContentType); err != nil {
-		w.jobRepo.FailJob(ctx, jobID, "failed to upload processed image: "+err.Error())
+		if failErr := w.jobRepo.FailJob(ctx, jobID, "failed to upload processed image: "+err.Error()); failErr != nil {
+			logger.Error("failed to mark job as failed", "error", failErr)
+		}
 		return fmt.Errorf("failed to upload processed image: %w", err)
 	}
 

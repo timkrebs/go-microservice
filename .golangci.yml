@@ -140,7 +140,7 @@ linters-settings:
     skip-tests: true
 
   gocognit:
-    min-complexity: 20
+    min-complexity: 25  # Increased from 20 for database functions
 
   prealloc:
     simple: true

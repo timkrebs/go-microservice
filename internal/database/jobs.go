@@ -3,6 +3,7 @@ package database
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"time"
 
@@ -10,6 +11,9 @@ import (
 
 	"github.com/timkrebs/image-processor/internal/models"
 )
+
+// ErrNotFound is returned when a job is not found
+var ErrNotFound = errors.New("job not found")
 
 // JobRepository handles job database operations
 type JobRepository struct {
@@ -93,7 +97,7 @@ func (r *JobRepository) GetByID(ctx context.Context, id uuid.UUID) (*models.Job,
 		&deleteAt,
 	)
 	if err == sql.ErrNoRows {
-		return nil, nil
+		return nil, ErrNotFound
 	}
 	if err != nil {
 		return nil, fmt.Errorf("failed to get job: %w", err)
