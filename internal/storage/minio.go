@@ -122,7 +122,10 @@ func (s *Storage) Delete(ctx context.Context, key string) error {
 	start := time.Now()
 	status := "success"
 
-	err := s.client.RemoveObject(ctx, s.bucketName, key, minio.RemoveObjectOptions{})
+	opts := minio.RemoveObjectOptions{
+		GovernanceBypass: true,
+	}
+	err := s.client.RemoveObject(ctx, s.bucketName, key, opts)
 
 	if err != nil {
 		status = "error"

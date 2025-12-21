@@ -19,7 +19,7 @@ func setupCleanupTest(t *testing.T) (*Worker, *database.DB, *storage.Storage, uu
 	t.Helper()
 
 	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
-		Level: slog.LevelError,
+		Level: slog.LevelDebug,
 	}))
 
 	dbURL := os.Getenv("TEST_DATABASE_URL")
@@ -194,18 +194,27 @@ func TestWorker_CleanupWithFiles(t *testing.T) {
 		t.Error("job not found in cleanup list")
 	}
 
+	t.Logf("Calling cleanup()...")
 	if err := worker.cleanup(ctx); err != nil {
 		t.Fatalf("cleanup failed: %v", err)
 	}
+	t.Logf("Cleanup completed successfully")
 
+	// Verify files were deleted
+	t.Logf("Checking if original file %q was deleted...", originalKey)
 	_, err = storageClient.Download(ctx, originalKey)
 	if err == nil {
 		t.Error("original file should have been deleted")
+	} else {
+		t.Logf("Original file deletion verified: %v", err)
 	}
 
+	t.Logf("Checking if processed file %q was deleted...", processedKey)
 	_, err = storageClient.Download(ctx, processedKey)
 	if err == nil {
 		t.Error("processed file should have been deleted")
+	} else {
+		t.Logf("Processed file deletion verified: %v", err)
 	}
 
 	jobs, err := worker.jobRepo.GetJobsToCleanup(ctx, 10)
