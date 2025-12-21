@@ -135,11 +135,6 @@ func (s *Storage) Delete(ctx context.Context, key string) error {
 	}
 
 	return err
-
-	if err != nil {
-		return fmt.Errorf("failed to delete object: %w", err)
-	}
-	return nil
 }
 
 // GetPresignedURL generates a presigned URL for downloading
