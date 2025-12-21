@@ -40,14 +40,14 @@ jobs:
     runs-on: ubuntu-latest
     if: github.event_name != 'workflow_dispatch' || !inputs.skip_ci_check
     steps:
-      - name: Wait for CI workflow
-        uses: lewagon/wait-on-check-action@v1.3.4
+      - name: Wait for CI workflow to complete
+        uses: fountainhead/action-wait-for-check@v1.2.0
         with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          checkName: CI Summary
           ref: ${{ github.sha }}
-          check-name: 'CI Summary'
-          repo-token: ${{ secrets.GITHUB_TOKEN }}
-          wait-interval: 10
-          allowed-conclusions: success,skipped,neutral
+          timeoutSeconds: 1800
+          intervalSeconds: 10
 
   build-and-push:
     name: Build and Push Docker Images
