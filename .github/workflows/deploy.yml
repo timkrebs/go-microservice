@@ -36,7 +36,7 @@ jobs:
       url: https://dev.image-processor.qnt9.com
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Install ArgoCD CLI
         run: |
@@ -91,7 +91,7 @@ jobs:
       url: https://staging.image-processor.qnt9.com
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Install ArgoCD CLI
         run: |
@@ -140,7 +140,7 @@ jobs:
       url: https://image-processor.qnt9.com
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Install ArgoCD CLI
         run: |
@@ -212,7 +212,7 @@ jobs:
       contents: write
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
